@@ -1,0 +1,18 @@
+ul {
+    list-style-type: none;
+  }
+  
+  .modified {
+    color: red;
+    font-weight: bold;
+  }
+  
+  .added {
+    color: green;
+    font-weight: bold;
+  }
+  
+  .deleted {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
