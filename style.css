@@ -1,18 +1,31 @@
 ul {
-    list-style-type: none;
-  }
-  
-  .modified {
-    color: red;
-    font-weight: bold;
-  }
-  
-  .added {
-    color: green;
-    font-weight: bold;
-  }
-  
-  .deleted {
-    text-decoration: line-through;
-    opacity: 0.5;
-  }
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.modified {
+  color: red;
+  font-weight: bold;
+}
+
+.added {
+  color: green;
+  font-weight: bold;
+}
+
+.deleted {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.toggle-button {
+  cursor: pointer;
+  margin-right: 5px;
+  outline: 0.5px solid black;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+ul ul {
+  margin-left: 20px;
+}

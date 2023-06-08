@@ -34,22 +34,51 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function displayHierarchy(hierarchy, parentElement) {
-    hierarchy.forEach((item) => {
-      const listItem = document.createElement('li');
-      listItem.textContent = item.name;
-      listItem.id = item.path;
-
-      if (item.type === 'file' && item.isModified) {
-        listItem.classList.add('modified');
-      }
-
-      parentElement.appendChild(listItem);
-
-      if (item.type === 'folder' && item.children) {
-        const subList = document.createElement('ul');
-        listItem.appendChild(subList);
-        displayHierarchy(item.children, subList);
-      }
-    });
-  }
+    hierarchy
+      .sort((a, b) => {
+        // Sort by type (folder first) and then by name
+        if (a.type === b.type) {
+          return a.name.localeCompare(b.name);
+        }
+        return a.type === 'folder' ? -1 : 1;
+      })
+      .forEach((item) => {
+        const listItem = document.createElement('li');
+        listItem.textContent = item.name;
+        listItem.id = item.path;
+  
+        if (item.type === 'file' && item.isModified) {
+          listItem.classList.add('modified');
+        }
+  
+        parentElement.appendChild(listItem);
+  
+        if (item.type === 'folder' && item.children) {
+          const subList = document.createElement('ul');
+          listItem.appendChild(subList);
+  
+          // Create a toggle button for collapsing/expanding folder contents
+          const toggleButton = document.createElement('span');
+          toggleButton.classList.add('toggle-button');
+          toggleButton.textContent = '-';
+          listItem.insertBefore(toggleButton, listItem.firstChild);
+  
+          // Initially collapse the folder contents
+          subList.style.display = 'none';
+  
+          toggleButton.addEventListener('click', () => {
+            // Toggle the display of the folder contents
+            if (subList.style.display === 'none') {
+              subList.style.display = 'block';
+              toggleButton.textContent = '-';
+            } else {
+              subList.style.display = 'none';
+              toggleButton.textContent = '+';
+            }
+          });
+  
+          displayHierarchy(item.children, subList);
+        }
+      });
+  } 
 });
