@@ -6,7 +6,6 @@ const fs = require('fs');
 
 document.addEventListener('DOMContentLoaded', () => {
   const folderButton = document.getElementById('folder-button');
-  const fileList = document.getElementById('fileList');
   const refreshButton = document.getElementById('refresh-button');
   const refreshS3Button = document.getElementById('refresh-s3-button');
 
@@ -20,9 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   refreshButton.addEventListener('click', async () => {
-    fileList.innerHTML = '';
-    const hierarchy = await ipcRenderer.invoke('get-folder-hierarchy');
-    displayHierarchy(hierarchy.children, fileList);
+    await refreshLocal();
   });
 
   refreshS3Button.addEventListener('click', async () => {
@@ -92,6 +89,8 @@ async function cloneHierarchyToLocalFolder(hierarchy, folderPath) {
 
   if (hierarchy.name === folderPath) {
     document.getElementById('clone-button').disabled = true;
+    await refreshLocal();
+    await refreshS3();
     alert('The S3 bucket has been cloned to the local directory.');
   }
 }
@@ -176,6 +175,14 @@ async function refreshS3() {
   const bucketName = document.getElementById('bucket-name').value;
   const hierarchy = await getBucketHierarchyViewer(bucketName);
   displayHierarchy(hierarchy, fileExplorer);
+}
+
+async function refreshLocal() {
+  const fileList = document.getElementById('fileList');
+  fileList.innerHTML = '';
+
+  const hierarchy = await ipcRenderer.invoke('get-folder-hierarchy');
+  displayHierarchy(hierarchy.children, fileList);
 }
 
 async function getBucketHierarchyClone(bucketName) {
