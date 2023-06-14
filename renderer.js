@@ -1,6 +1,8 @@
 const { ipcRenderer } = require('electron');
-const { PutObjectCommand, DeleteObjectCommand, ListObjectsCommand } = require("@aws-sdk/client-s3");
+const { PutObjectCommand, DeleteObjectCommand, ListObjectsCommand, GetObjectCommand  } = require("@aws-sdk/client-s3");
 const { s3 } = require("./s3_client.js");
+const path = require('path');
+const fs = require('fs');
 
 document.addEventListener('DOMContentLoaded', () => {
   const folderButton = document.getElementById('folder-button');
@@ -40,7 +42,75 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
+
+  document.getElementById('clone-button').addEventListener('click', async () => {
+    const result = await ipcRenderer.invoke('open-folder-dialog');
+    if (!result.canceled) {
+      const selectedFolderPath = result.path;
+  
+      const bucketName = document.getElementById('bucket-name').value;
+      const hierarchy = await getBucketHierarchy(bucketName);
+  
+      await cloneHierarchyToLocalFolder(hierarchy, selectedFolderPath);
+  
+      alert('The S3 bucket has been cloned to the local directory.');
+    }
+  });
 });
+
+async function cloneHierarchyToLocalFolder(hierarchy, folderPath) {
+  const destinationPath = path.join(folderPath, hierarchy.name);
+
+  if (hierarchy.type === 'file') {
+    const localFilePath = await getFileContentFromS3(hierarchy.path, destinationPath);
+
+    // Create parent directories recursively
+    const parentDir = path.dirname(localFilePath);
+    await fs.promises.mkdir(parentDir, { recursive: true });
+
+    const fileContent = await fs.promises.readFile(localFilePath);
+    await fs.promises.writeFile(localFilePath, fileContent);
+
+    const stats = await fs.promises.stat(localFilePath);
+    const fileSizeInBytes = stats.size;
+
+    const progressElement = document.getElementById('progress');
+    const progress = `${fileSizeInBytes} bytes`;
+    progressElement.textContent = progress;
+  } else if (hierarchy.type === 'folder') {
+    if (!fs.existsSync(destinationPath)) {
+      await fs.promises.mkdir(destinationPath, { recursive: true });
+    }
+    for (const child of hierarchy.children) {
+      await cloneHierarchyToLocalFolder(child, destinationPath);
+    }
+  }
+}
+
+async function getFileContentFromS3(filePath, localFilePath) {
+  const params = {
+    Bucket: document.getElementById('bucket-name').value,
+    Key: filePath,
+  };
+
+  try {
+    const data = await s3.send(new GetObjectCommand(params));
+    const stream = data.Body;
+
+    await new Promise((resolve, reject) => {
+      const fileStream = fs.createWriteStream(localFilePath);
+      stream.pipe(fileStream);
+
+      stream.on('end', resolve);
+      stream.on('error', reject);
+    });
+
+    return localFilePath;
+  } catch (err) {
+    console.error('Error getting file content from S3:', err);
+    return null;
+  }
+}
 
 function displayHierarchy(hierarchy, parentElement) {
   hierarchy
@@ -144,7 +214,7 @@ async function getBucketHierarchy(bucketName) {
     currentFolder.children.push(file);
   }
 
-  return hierarchy.children;
+  return hierarchy;
 }
 
 document.getElementById('add-file').addEventListener('click', async () => {
@@ -157,7 +227,7 @@ document.getElementById('add-file').addEventListener('click', async () => {
   try {
     const results = await s3.send(new PutObjectCommand(params));
     showUploadStatus('File upload successful.', 'success');
-    refreshS3();
+    await refreshS3();
     return results; // For unit tests.
   } catch (err) {
     showUploadStatus('File upload failed.', 'error');
@@ -173,7 +243,7 @@ document.getElementById('delete-file').addEventListener('click', async () => {
   try {
     const results = await s3.send(new DeleteObjectCommand(params));
     showUploadStatus('File deletion successful.', 'success');
-    refreshS3();
+    await refreshS3();
     return results; // For unit tests.
   } catch (err) {
     showUploadStatus('File deletion failed.', 'error');

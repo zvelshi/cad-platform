@@ -5,6 +5,7 @@ const chokidar = require('chokidar');
 
 let mainWindow;
 let watcher;
+let folderPath = '';
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -26,14 +27,14 @@ const createWindow = () => {
     if (!result.canceled) {
       const selectedFolderPath = result.filePaths[0];
   
-      // Make sure to set the global.folderPath to selectedFolderPath
-      global.folderPath = selectedFolderPath;
+      // Make sure to set the folderPath to selectedFolderPath
+      folderPath = selectedFolderPath;
 
       if (watcher) {
         watcher.close();
       }
 
-      watcher = chokidar.watch(global.folderPath, {
+      watcher = chokidar.watch(folderPath, {
         ignoreInitial: true,
         events: ['add', 'change', 'unlink'] // Include 'add' event
       });
@@ -42,10 +43,10 @@ const createWindow = () => {
         mainWindow.webContents.send('file-changed', filePath, event);
       });
 
-        const hierarchy = await getFolderHierarchy(global.folderPath);
+        const hierarchy = await getFolderHierarchy(folderPath);
       return hierarchy;
     } else {
-      global.folderPath = '';
+      folderPath = '';
       if (watcher) {
         watcher.close();
         watcher = null;
@@ -56,9 +57,9 @@ const createWindow = () => {
   });
 
   ipcMain.handle('get-folder-hierarchy', async () => {
-    if (global.folderPath) {
+    if (folderPath) {
       try {
-        const hierarchy = await getFolderHierarchy(global.folderPath);
+        const hierarchy = await getFolderHierarchy(folderPath);
         return hierarchy;
       } catch (error) {
         console.error('Error reading folder hierarchy:', error);
@@ -82,7 +83,6 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-
 async function getFolderHierarchy(folderPath) {
   const stats = await fs.lstat(folderPath);
   const hierarchy = {
@@ -99,6 +99,5 @@ async function getFolderHierarchy(folderPath) {
       return getFolderHierarchy(childPath);
     }));
   }
-
   return hierarchy;
 }
