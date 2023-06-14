@@ -12,20 +12,23 @@
     <p>FOR INTERNAL USE ONLY</p>
 
     <section id="file-viewer">
-      <h1>Local Directory Viewer</h1>
+      <h1>Local</h1>
+      <h3>Directory Viewer</h3>
       <button id="folder-button">Select Folder</button>
       <button id="refresh-button">Refresh</button>
       <ul id="fileList"></ul>
     </section>
 
     <section id="aws-connection">
-      <h2>AWS S3 Testing</h2>
+      <h1>Cloud</1>
+      <h3>S3 Connection Settings</h3>
       <div id="login-form">
 
         <label for="bucket-name">Bucket Name:</label>
         <input type="text" id="bucket-name">
         <br><br>
 
+        <h3>Add/Remove a File</h3>
         <label for="add-file-name">File Key (foo.txt):</label>
         <input type="text" id="add-file-name">
         <br>
@@ -39,13 +42,14 @@
         <input type="text" id="delete-file-name">
         <br>
         <button id="delete-file">Delete File</button>
+        <br><br>
 
         <div id="upload-status"></div>
       </div>
     </section>
 
     <section id="s3-viewer">
-      <h2>AWS S3 Bucket Viewer</h2>
+      <h3>Bucket Viewer</h3>
       <ul id="file-explorer"></ul>
       <button id="refresh-s3-button">Refresh</button>
     </section>   

@@ -25,10 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   refreshS3Button.addEventListener('click', async () => {
-    fileExplorer.innerHTML = '';
-    const bucketName = document.getElementById('bucket-name').value;
-    const hierarchy = await getBucketHierarchy(bucketName);
-    displayHierarchy(hierarchy, fileExplorer);
+    await refreshS3();
   });
 
   ipcRenderer.on('file-changed', (event, filePath, changeType) => {
@@ -44,56 +41,65 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-
-  function displayHierarchy(hierarchy, parentElement) {
-    hierarchy
-      .sort((a, b) => {
-        // Sort by type (folder first) and then by name
-        if (a.type === b.type) {
-          return a.name.localeCompare(b.name);
-        }
-        return a.type === 'folder' ? -1 : 1;
-      })
-      .forEach((item) => {
-        const listItem = document.createElement('li');
-        listItem.textContent = item.name;
-        listItem.id = item.path;
-  
-        if (item.type === 'file' && item.isModified) {
-          listItem.classList.add('modified');
-        }
-  
-        parentElement.appendChild(listItem);
-  
-        if (item.type === 'folder' && item.children) {
-          const subList = document.createElement('ul');
-          listItem.appendChild(subList);
-  
-          // Create a toggle button for collapsing/expanding folder contents
-          const toggleButton = document.createElement('span');
-          toggleButton.classList.add('toggle-button');
-          toggleButton.textContent = '-';
-          listItem.insertBefore(toggleButton, listItem.firstChild);
-  
-          // Initially collapse the folder contents
-          subList.style.display = 'none';
-  
-          toggleButton.addEventListener('click', () => {
-            // Toggle the display of the folder contents
-            if (subList.style.display === 'none') {
-              subList.style.display = 'block';
-              toggleButton.textContent = '-';
-            } else {
-              subList.style.display = 'none';
-              toggleButton.textContent = '+';
-            }
-          });
-  
-          displayHierarchy(item.children, subList);
-        }
-      });
-  } 
 });
+
+function displayHierarchy(hierarchy, parentElement) {
+  hierarchy
+    .sort((a, b) => {
+      // Sort by type (folder first) and then by name
+      if (a.type === b.type) {
+        return a.name.localeCompare(b.name);
+      }
+      return a.type === 'folder' ? -1 : 1;
+    })
+    .forEach((item) => {
+      const listItem = document.createElement('li');
+      listItem.textContent = item.name;
+      listItem.id = item.path;
+
+      if (item.type === 'file' && item.isModified) {
+        listItem.classList.add('modified');
+      }
+
+      parentElement.appendChild(listItem);
+
+      if (item.type === 'folder' && item.children) {
+        const subList = document.createElement('ul');
+        listItem.appendChild(subList);
+
+        // Create a toggle button for collapsing/expanding folder contents
+        const toggleButton = document.createElement('span');
+        toggleButton.classList.add('toggle-button');
+        toggleButton.textContent = '-';
+        listItem.insertBefore(toggleButton, listItem.firstChild);
+
+        // Initially collapse the folder contents
+        subList.style.display = 'none';
+
+        toggleButton.addEventListener('click', () => {
+          // Toggle the display of the folder contents
+          if (subList.style.display === 'none') {
+            subList.style.display = 'block';
+            toggleButton.textContent = '-';
+          } else {
+            subList.style.display = 'none';
+            toggleButton.textContent = '+';
+          }
+        });
+
+        displayHierarchy(item.children, subList);
+      }
+    });
+} 
+
+async function refreshS3() {
+  const fileExplorer = document.getElementById('file-explorer');
+  fileExplorer.innerHTML = '';
+
+  const bucketName = document.getElementById('bucket-name').value;
+  const hierarchy = await getBucketHierarchy(bucketName);
+  displayHierarchy(hierarchy, fileExplorer);
+}
 
 async function getBucketHierarchy(bucketName) {
   const res = await s3.send(new ListObjectsCommand({ 
@@ -153,6 +159,7 @@ document.getElementById('add-file').addEventListener('click', async () => {
   try {
     const results = await s3.send(new PutObjectCommand(params));
     showUploadStatus('File upload successful.', 'success');
+    refreshS3();
     return results; // For unit tests.
   } catch (err) {
     showUploadStatus('File upload failed.', 'error');
@@ -168,6 +175,7 @@ document.getElementById('delete-file').addEventListener('click', async () => {
   try {
     const results = await s3.send(new DeleteObjectCommand(params));
     showUploadStatus('File deletion successful.', 'success');
+    refreshS3();
     return results; // For unit tests.
   } catch (err) {
     showUploadStatus('File deletion failed.', 'error');
