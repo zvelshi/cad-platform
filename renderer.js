@@ -1,10 +1,13 @@
 const { ipcRenderer } = require('electron');
-const { PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { PutObjectCommand, DeleteObjectCommand, ListObjectsCommand } = require("@aws-sdk/client-s3");
 const { s3 } = require("./s3_client.js");
 
 document.addEventListener('DOMContentLoaded', () => {
   const folderButton = document.getElementById('folder-button');
   const fileList = document.getElementById('fileList');
+  const refreshButton = document.getElementById('refresh-button');
+  const refreshS3Button = document.getElementById('refresh-s3-button');
+  const fileExplorer = document.getElementById('file-explorer');
 
   folderButton.addEventListener('click', async () => {
     const result = await ipcRenderer.invoke('open-folder-dialog');
@@ -15,12 +18,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  const refreshButton = document.getElementById('refresh-button');
   refreshButton.addEventListener('click', async () => {
     fileList.innerHTML = '';
     const hierarchy = await ipcRenderer.invoke('get-folder-hierarchy');
     displayHierarchy(hierarchy, fileList);
   });
+
+  refreshS3Button.addEventListener('click', async () => {
+    fileExplorer.innerHTML = '';
+    const bucketName = document.getElementById('bucket-name').value;
+    const hierarchy = await getBucketHierarchy(bucketName);
+    displayHierarchy(hierarchy, fileExplorer);
+  });
+
   ipcRenderer.on('file-changed', (event, filePath, changeType) => {
     const fileElement = document.getElementById(filePath);
     if (fileElement) {
@@ -84,6 +94,54 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   } 
 });
+
+async function getBucketHierarchy(bucketName) {
+  const res = await s3.send(new ListObjectsCommand({ 
+    Bucket: bucketName 
+  }));
+  const contents = res.Contents;
+
+  const hierarchy = {
+    name: bucketName,
+    path: '',
+    type: 'folder',
+    isModified: false,
+    children: [],
+  };
+
+  for (const content of contents) {
+    const key = content.Key;
+    const parts = key.split('/');
+
+    let currentFolder = hierarchy;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const folderName = parts[i];
+      let childFolder = currentFolder.children.find((child) => child.name === folderName);
+      if (!childFolder) {
+        childFolder = {
+          name: folderName,
+          path: parts.slice(0, i + 1).join('/'),
+          type: 'folder',
+          isModified: false,
+          children: [],
+        };
+        currentFolder.children.push(childFolder);
+      }
+      currentFolder = childFolder;
+    }
+
+    const fileName = parts[parts.length - 1];
+    const file = {
+      name: fileName,
+      path: key,
+      type: 'file',
+      isModified: false,
+    };
+    currentFolder.children.push(file);
+  }
+
+  return hierarchy.children;
+}
 
 document.getElementById('add-file').addEventListener('click', async () => {
   const params = {
