@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const selectedFolderPath = result.path;
   
       const bucketName = document.getElementById('bucket-name').value;
-      const hierarchy = await getBucketHierarchy(bucketName);
+      const hierarchy = await getBucketHierarchyClone(bucketName);
   
       await cloneHierarchyToLocalFolder(hierarchy, selectedFolderPath);
   
@@ -174,11 +174,11 @@ async function refreshS3() {
   fileExplorer.innerHTML = '';
 
   const bucketName = document.getElementById('bucket-name').value;
-  const hierarchy = await getBucketHierarchy(bucketName);
+  const hierarchy = await getBucketHierarchyViewer(bucketName);
   displayHierarchy(hierarchy, fileExplorer);
 }
 
-async function getBucketHierarchy(bucketName) {
+async function getBucketHierarchyClone(bucketName) {
   const res = await s3.send(new ListObjectsCommand({ 
     Bucket: bucketName 
   }));
@@ -224,6 +224,48 @@ async function getBucketHierarchy(bucketName) {
   }
 
   return hierarchy;
+}
+
+async function getBucketHierarchyViewer(bucketName) {
+  const res = await s3.send(new ListObjectsCommand({ 
+    Bucket: bucketName 
+  }));
+  const contents = res.Contents;
+
+  const children = [];
+
+  for (const content of contents) {
+    const key = content.Key;
+    const parts = key.split('/');
+
+    let currentFolder = children;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const folderName = parts[i];
+      let childFolder = currentFolder.find((child) => child.name === folderName);
+      if (!childFolder) {
+        childFolder = {
+          name: folderName,
+          path: parts.slice(0, i + 1).join('/'),
+          type: 'folder',
+          isModified: false,
+          children: [],
+        };
+        currentFolder.push(childFolder);
+      }
+      currentFolder = childFolder.children;
+    }
+
+    const fileName = parts[parts.length - 1];
+    const file = {
+      name: fileName,
+      path: key,
+      type: 'file',
+      isModified: false,
+    };
+    currentFolder.push(file);
+  }
+
+  return children;
 }
 
 document.getElementById('add-file').addEventListener('click', async () => {
