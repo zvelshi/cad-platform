@@ -4,16 +4,15 @@ const fs = require('fs').promises;
 const chokidar = require('chokidar');
 
 let mainWindow;
-let folderPath = ''; 
 let watcher;
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width:  1050,
+    width: 1050,
     height: 1050,
     webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false
+      nodeIntegration: true,
+      contextIsolation: false
     }
   })
 
@@ -23,15 +22,18 @@ const createWindow = () => {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory']
     });
-
+  
     if (!result.canceled) {
-      folderPath = result.filePaths[0];
+      const selectedFolderPath = result.filePaths[0];
+  
+      // Make sure to set the global.folderPath to selectedFolderPath
+      global.folderPath = selectedFolderPath;
 
       if (watcher) {
         watcher.close();
       }
 
-      watcher = chokidar.watch(folderPath, {
+      watcher = chokidar.watch(global.folderPath, {
         ignoreInitial: true,
         events: ['add', 'change', 'unlink'] // Include 'add' event
       });
@@ -40,10 +42,10 @@ const createWindow = () => {
         mainWindow.webContents.send('file-changed', filePath, event);
       });
 
-      const hierarchy = await getFolderHierarchy(folderPath);
-      return [hierarchy];
+        const hierarchy = await getFolderHierarchy(global.folderPath);
+      return hierarchy;
     } else {
-      folderPath = '';
+      global.folderPath = '';
       if (watcher) {
         watcher.close();
         watcher = null;
@@ -54,10 +56,10 @@ const createWindow = () => {
   });
 
   ipcMain.handle('get-folder-hierarchy', async () => {
-    if (folderPath) {
+    if (global.folderPath) {
       try {
-        const hierarchy = await getFolderHierarchy(folderPath);
-        return [hierarchy];
+        const hierarchy = await getFolderHierarchy(global.folderPath);
+        return hierarchy;
       } catch (error) {
         console.error('Error reading folder hierarchy:', error);
       }
@@ -79,6 +81,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+
 
 async function getFolderHierarchy(folderPath) {
   const stats = await fs.lstat(folderPath);

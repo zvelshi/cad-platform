@@ -7,21 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileList = document.getElementById('fileList');
   const refreshButton = document.getElementById('refresh-button');
   const refreshS3Button = document.getElementById('refresh-s3-button');
-  const fileExplorer = document.getElementById('file-explorer');
 
   folderButton.addEventListener('click', async () => {
     const result = await ipcRenderer.invoke('open-folder-dialog');
     if (!result.canceled) {
       fileList.innerHTML = '';
       const hierarchy = await ipcRenderer.invoke('get-folder-hierarchy');
-      displayHierarchy(hierarchy, fileList);
+      displayHierarchy(hierarchy.children, fileList);
     }
   });
 
   refreshButton.addEventListener('click', async () => {
     fileList.innerHTML = '';
     const hierarchy = await ipcRenderer.invoke('get-folder-hierarchy');
-    displayHierarchy(hierarchy, fileList);
+    displayHierarchy(hierarchy.children, fileList);
   });
 
   refreshS3Button.addEventListener('click', async () => {
@@ -46,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function displayHierarchy(hierarchy, parentElement) {
   hierarchy
     .sort((a, b) => {
-      // Sort by type (folder first) and then by name
       if (a.type === b.type) {
         return a.name.localeCompare(b.name);
       }
