@@ -29,3 +29,16 @@ ul {
 ul ul {
   margin-left: 20px;
 }
+
+#upload-status {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.success {
+  color: green;
+}
+
+.error {
+  color: red;
+}

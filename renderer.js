@@ -1,7 +1,9 @@
 const { ipcRenderer } = require('electron');
+const { PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const { s3 } = require("./s3_client.js");
 
 document.addEventListener('DOMContentLoaded', () => {
-  const folderButton = document.getElementById('folderButton');
+  const folderButton = document.getElementById('folder-button');
   const fileList = document.getElementById('fileList');
 
   folderButton.addEventListener('click', async () => {
@@ -13,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  const refreshButton = document.getElementById('refreshButton');
+  const refreshButton = document.getElementById('refresh-button');
   refreshButton.addEventListener('click', async () => {
     fileList.innerHTML = '';
     const hierarchy = await ipcRenderer.invoke('get-folder-hierarchy');
@@ -82,3 +84,40 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   } 
 });
+
+document.getElementById('add-file').addEventListener('click', async () => {
+  const params = {
+    Bucket: document.getElementById('bucket-name').value,
+    Key: document.getElementById('add-file-name').value,
+    Body: document.getElementById('add-file-content').value,
+  };
+
+  try {
+    const results = await s3.send(new PutObjectCommand(params));
+    showUploadStatus('File upload successful.', 'success');
+    return results; // For unit tests.
+  } catch (err) {
+    showUploadStatus('File upload failed.', 'error');
+  }
+});
+
+document.getElementById('delete-file').addEventListener('click', async () => {
+  const params = {
+    Bucket: document.getElementById('bucket-name').value,
+    Key: document.getElementById('delete-file-name').value,
+  };
+
+  try {
+    const results = await s3.send(new DeleteObjectCommand(params));
+    showUploadStatus('File deletion successful.', 'success');
+    return results; // For unit tests.
+  } catch (err) {
+    showUploadStatus('File deletion failed.', 'error');
+  }
+});
+
+function showUploadStatus(message, status) {
+  const uploadStatus = document.getElementById('upload-status');
+  uploadStatus.textContent = message;
+  uploadStatus.className = status;
+}

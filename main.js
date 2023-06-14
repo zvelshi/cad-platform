@@ -1,6 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const url = require('url');
 const fs = require('fs').promises;
 const chokidar = require('chokidar');
 
@@ -14,8 +13,7 @@ const createWindow = () => {
     height: 1050,
     webPreferences: {
         nodeIntegration: true,
-        contextIsolation: false,
-        preload: path.join(__dirname, 'preload.js')
+        contextIsolation: false
     }
   })
 
