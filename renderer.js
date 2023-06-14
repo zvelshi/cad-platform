@@ -62,21 +62,25 @@ async function cloneHierarchyToLocalFolder(hierarchy, folderPath) {
   const destinationPath = path.join(folderPath, hierarchy.name);
 
   if (hierarchy.type === 'file') {
-    const localFilePath = await getFileContentFromS3(hierarchy.path, destinationPath);
+    // Check if the file already exists at the destination
+    if (!fs.existsSync(destinationPath)) {
+      const localFilePath = await getFileContentFromS3(hierarchy.path, destinationPath);
 
-    // Create parent directories recursively
-    const parentDir = path.dirname(localFilePath);
-    await fs.promises.mkdir(parentDir, { recursive: true });
+      // Create parent directories recursively
+      const parentDir = path.dirname(localFilePath);
+      await fs.promises.mkdir(parentDir, { recursive: true });
 
-    const fileContent = await fs.promises.readFile(localFilePath);
-    await fs.promises.writeFile(localFilePath, fileContent);
+      const stats = await fs.promises.stat(localFilePath);
+      const fileSizeInBytes = stats.size;
 
-    const stats = await fs.promises.stat(localFilePath);
-    const fileSizeInBytes = stats.size;
+      // Update progress element with file name, directory, and file size
+      const progressElement = document.getElementById('progress');
+      const progress = `Downloading: ${hierarchy.name}\nDirectory: ${path.dirname(localFilePath)}\nSize: ${fileSizeInBytes} bytes\n`;
+      progressElement.textContent = progress;
 
-    const progressElement = document.getElementById('progress');
-    const progress = `${fileSizeInBytes} bytes`;
-    progressElement.textContent = progress;
+      // Clear progress element after 5 seconds
+      setTimeout(() => { progressElement.textContent = ''; }, 150);
+    }
   } else if (hierarchy.type === 'folder') {
     if (!fs.existsSync(destinationPath)) {
       await fs.promises.mkdir(destinationPath, { recursive: true });
@@ -84,6 +88,11 @@ async function cloneHierarchyToLocalFolder(hierarchy, folderPath) {
     for (const child of hierarchy.children) {
       await cloneHierarchyToLocalFolder(child, destinationPath);
     }
+  }
+
+  if (hierarchy.name === folderPath) {
+    document.getElementById('clone-button').disabled = true;
+    alert('The S3 bucket has been cloned to the local directory.');
   }
 }
 
