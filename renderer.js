@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const refreshS3Button = document.getElementById('refresh-s3-button');
 
   folderButton.addEventListener('click', async () => {
+    folderPath = '';
     const result = await ipcRenderer.invoke('open-folder-dialog');
     if (!result.canceled) {
       fileList.innerHTML = '';
@@ -23,7 +24,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   refreshS3Button.addEventListener('click', async () => {
-    await refreshS3();
+    if (document.getElementById('bucket-name').value === '') {
+      alert('Please enter a bucket name.');
+      return;
+    } else {
+      await refreshS3();
+    }
   });
 
   ipcRenderer.on('file-changed', (event, filePath, changeType) => {
@@ -40,7 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('clone-button').addEventListener('click', async () => {
+  document.getElementById('pull-button').addEventListener('click', async () => {
+    if (document.getElementById('bucket-name').value === '') {
+      alert('Please enter a bucket name.');
+      return;
+    }
     const result = await ipcRenderer.invoke('open-folder-dialog');
     if (!result.canceled) {
       const selectedFolderPath = result.path;
@@ -76,7 +86,7 @@ async function cloneHierarchyToLocalFolder(hierarchy, folderPath) {
       progressElement.textContent = progress;
 
       // Clear progress element after 5 seconds
-      setTimeout(() => { progressElement.textContent = ''; }, 150);
+      setTimeout(() => { progressElement.textContent = ''; }, 250);
     }
   } else if (hierarchy.type === 'folder') {
     if (!fs.existsSync(destinationPath)) {
