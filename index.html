@@ -5,57 +5,12 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <link rel="stylesheet" type="text/css" href="style.css">
-    <title>Project GC</title>
+    <title>Project GC Alpha-2</title>
 
   </head>
   <body>
+    <h1>Project GC Alpha-2</h1>
     <p>FOR INTERNAL USE ONLY</p>
-
-    <section id="file-viewer">
-      <h1>Local</h1>
-      <h3>Directory Viewer</h3>
-      <button id="folder-button">Select Folder</button>
-      <button id="refresh-button">Refresh</button>
-      <ul id="fileList"></ul>
-    </section>
-
-    <section id="aws-connection">
-      <h1>Cloud</1>
-      <h3>S3 Connection Settings</h3>
-      <div id="login-form">
-
-        <label for="bucket-name">Bucket Name:</label>
-        <input type="text" id="bucket-name">
-        <br><br>
-
-        <h3>Add/Remove a File</h3>
-        <label for="add-file-name">File Key (foo.txt):</label>
-        <input type="text" id="add-file-name">
-        <br>
-        <label for="add-file-content">File Content:</label>
-        <input type="text" id="add-file-content">
-        <br>
-        <button id="add-file">Add File</button>
-        <br><br>
-
-        <label for="delete-file-name">File Key (foo.txt):</label>
-        <input type="text" id="delete-file-name">
-        <br>
-        <button id="delete-file">Delete File</button>
-        <br><br>
-
-        <div id="upload-status"></div>
-      </div>
-    </section>
-
-    <section id="s3-viewer">
-      <h3>Bucket Viewer</h3>
-      <ul id="file-explorer"></ul>
-      <button id="pull-button">Pull</button>
-      <button id="refresh-s3-button">Refresh</button>
-      <br>
-      <pre id="progress"></pre>
-    </section>   
 
     <script src="renderer.js"></script>
   </body>
