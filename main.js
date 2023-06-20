@@ -1,11 +1,10 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
-const path = require('path');
-const fs = require('fs').promises;
-const chokidar = require('chokidar');
+
+require('electron-reload')(__dirname, {
+  electron: require(`${__dirname}/node_modules/electron`)
+});
 
 let mainWindow;
-let watcher;
-let folderPath = '';
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -15,10 +14,22 @@ const createWindow = () => {
       nodeIntegration: true,
       contextIsolation: false
     }
-  })
+  });
 
-  mainWindow.loadFile('index.html')
-}
+  mainWindow.loadFile('index.html');
+
+  ipcMain.handle('open-folder-dialog', async (event) => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory']
+    });
+  
+    if (!result.canceled) {
+      return result;
+    } else {
+      return [];
+    }
+  });
+};
 
 app.whenReady().then(() => {
   createWindow()
@@ -27,8 +38,8 @@ app.whenReady().then(() => {
 
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
-})
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
-})
+});

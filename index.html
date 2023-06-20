@@ -5,12 +5,38 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
     <link rel="stylesheet" type="text/css" href="style.css">
-    <title>Project GC Alpha-2</title>
-
+    <title>Project GC alpha-2</title>
   </head>
   <body>
-    <h1>Project GC Alpha-2</h1>
-    <p>FOR INTERNAL USE ONLY</p>
+    <h1>Project GC alpha-2</h1>
+    <p id="disclaimer">FOR INTERNAL USE ONLY</p> 
+
+    <!--add stuff below this line-->
+
+    <section id="repo-options">
+      <h2>Repository Options</h2> 
+
+      <p>Create New Repository (creates cloud bucket and asks for local directory)</p>
+      <label for="create-repo-name">Repository Name:</label>
+      <input type="text" id="create-repo-name"></input> 
+      <br>
+      
+      <button id="create-repo-select">Select Directory</button>
+      <label id="create-repo-path"></label>
+      <br>
+
+      <button id="create-repo-create">Create</button>
+    </section>
+
+    <section id="controls">
+      <h2>Controls</h2>
+      <button id="clone" disabled>Clone</button>
+      <button id="pull" disabled>Pull</button>
+      <br><br>
+      <button id="push" disabled>Push</button>
+    </section>
+
+    <!--do not touch anything below this line-->
 
     <script src="renderer.js"></script>
   </body>
