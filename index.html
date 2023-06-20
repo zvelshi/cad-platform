@@ -13,8 +13,18 @@
 
     <!--add stuff below this line-->
 
+    <section id="user-information">
+      <h2>User Information</h2>
+      <label for="username">Username:</label>
+      <input type="text" id="username"></input>
+      <br>
+
+      <label for="organization">Organization:</label>
+      <input type="text" id="organization"></input>
+    </section>
+
     <section id="repo-options">
-      <h2>Repository Options</h2> 
+      <h2>Repository</h2>
 
       <p>Create New Repository (creates cloud bucket and asks for local directory)</p>
       <label for="create-repo-name">Repository Name:</label>
@@ -26,13 +36,44 @@
       <br>
 
       <button id="create-repo-create">Create</button>
+
+      <br><br>
+
+      <p>Clone Existing Repo (from cloud)</p>
+      <label for="clone-repo-cloud-select">Choose from the following repos:</label>
+      <select id="clone-repo-cloud-select"></select>
+      <button id="clone-repo-cloud-select-btn">Select</button>
+      <br>
+
+      <button id="clone-repo-cloud-dir">Select Directory</button>
+      <label id="clone-repo-cloud-path"></label>
+
+      <br><br>
+
+      <p>Push Existing Repo (from local)</p>
+      <button id="clone-repo-local-select">Select Directory</button>
+      <label id="clone-repo-local-path"></label>
+      <br>
+      
+      <label for="clone-repo-local-friendlyname">Friendly Name:</label>
+      <label id="clone-repo-local-friendlyname"></label>
+      <br>
+
+      <button id="clone-repo-local-clone" disabled>Create</button>
+
     </section>
 
     <section id="controls">
-      <h2>Controls</h2>
-      <button id="clone" disabled>Clone</button>
-      <button id="pull" disabled>Pull</button>
+      <h2>Active Controls</h2>
+      <label for="active-repo">Current Active Repository:</label>
+      <label id="active-repo"></label>
+      <br>
+
+      <button id="change-active-repo">Change</button>
+
       <br><br>
+
+      <button id="pull" disabled>Pull</button>
       <button id="push" disabled>Push</button>
     </section>
 

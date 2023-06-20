@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { s3 } = require('./s3_client.js');
 
 require('electron-reload')(__dirname, {
   electron: require(`${__dirname}/node_modules/electron`)
@@ -8,8 +9,8 @@ let mainWindow;
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 720,
+    width: 640,
+    height: 860,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
