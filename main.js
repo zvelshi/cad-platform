@@ -3,16 +3,16 @@ const { s3 } = require('./s3_client.js');
 const { dbdoc } = require('./db_client.js');
 const Store = require('electron-store');
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
 
 const { CreateBucketCommand } = require('@aws-sdk/client-s3');
-const { ScanCommand, PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 
 require('electron-reload')(__dirname, {
   electron: require(`${__dirname}/node_modules/electron`)
 });
 
 const store = new Store();
-let activeRepo = null;
 let mainWindow;
 
 const createWindow = () => {
@@ -26,7 +26,6 @@ const createWindow = () => {
   });
 
   mainWindow.loadFile('index.html');
-  activeRepo = store.get('activeRepo');
 
   ipcMain.handle('open-folder-dialog', async (event) => {
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -77,6 +76,9 @@ const createWindow = () => {
       console.log(err);
     }
 
+    //create local folder
+    fs.mkdirSync(folderPath);    
+
     //set active repo
     store.set('activeRepo', uniqueName);
   });
@@ -94,7 +96,27 @@ const createWindow = () => {
     } else {
       return null;
     }
-  });    
+  });
+
+  ipcMain.handle('set-active-repo', async (event, uniqueName) => {
+    store.set('activeRepo', uniqueName);
+  });
+
+  ipcMain.handle('get-local-repos', async (event) => {
+    const localRepos = [];
+    const config = store.store;
+    for (const key in config) {
+      let obj = { uniqueName: '', friendlyName: '', organization: '', folderPath: '' };
+      if (key !== 'activeRepo') {
+        obj.uniqueName = key;
+        obj.friendlyName = config[key].friendlyName;
+        obj.organization = config[key].organization;
+        obj.folderPath = config[key].folderPath;
+        localRepos.push(obj);        
+      }
+    }
+    return localRepos;
+  });
 
   //for debug purposes only
   ipcMain.on('clear-json', (event) => {
