@@ -22,41 +22,52 @@
     <section id="repo-options">
       <h2>Repository</h2>
 
-      <p>Create New Repository (creates cloud bucket and asks for local directory)</p>
-      <label for="create-repo-name">Repository Name:</label>
-      <input type="text" id="create-repo-name"></input> 
-      <br>
-      
-      <button id="create-repo-select">Select Directory</button>
-      <label id="create-repo-path"></label>
-      <br>
+      <select id="repo-select">
+        <option value="0" selected disabled>Select Option</option>
+        <option value="1">Create New Repo</option>
+        <option value="2">Clone Existing Cloud Repo</option>
+        <option value="3">Push Existing Local Repo</option>
+      </select>
+      <button id="repo-select-btn">Select</button>
 
-      <button id="create-repo-create">Create</button>
+      <div id="create" hidden>
+        <label for="create-repo-name">Repository Name:</label>
+        <input type="text" id="create-repo-name"></input> 
+        <br>
+        
+        <button id="select-dir-btn">Select Directory</button>
+        <label id="create-repo-path"></label>
+        <br>
 
-      <br><br>
+        <button id="create-repo-create">Create</button>
 
-      <p>Clone Existing Repo (from cloud)</p>
-      <label for="clone-repo-cloud-select">Choose from the following repos:</label>
-      <select id="clone-repo-cloud-select"></select>
-      <button id="clone-repo-cloud-select-btn">Select</button>
-      <br>
+        <br><br>
+      </div>
 
-      <button id="clone-repo-cloud-dir">Select Directory</button>
-      <label id="clone-repo-cloud-path"></label>
+      <div id="clone" hidden>
+        <label for="clone-repo-cloud-select">Choose from the following repos:</label>
+        <select id="clone-repo-cloud-select"></select>
+        <button id="clone-repo-cloud-select-btn">Select</button>
+        <br>
 
-      <br><br>
+        <button id="select-dir-btn2">Select Directory</button>
+        <label id="clone-repo-cloud-path"></label>
 
-      <p>Push Existing Repo (from local)</p>
-      <button id="clone-repo-local-select">Select Directory</button>
-      <label id="clone-repo-local-path"></label>
-      <br>
-      
-      <label for="clone-repo-local-friendlyname">Friendly Name:</label>
-      <label id="clone-repo-local-friendlyname"></label>
-      <br>
+        <br><br>
+      </div>
 
-      <button id="clone-repo-local-clone" disabled>Create</button>
+      <div id="push-clone" hidden>
+        <button id="select-dir-btn3">Select Directory</button><br>
+        <label for="clone-local-repo-path">Selected Directory: </label>
+        <label id="clone-local-repo-path"></label>
+        <br>
+        
+        <label for="clone-local-repo-friendly-name">New Repo Name:</label>
+        <label id="clone-local-repo-friendly-name"></label>
+        <br>
 
+        <button id="clone-local-repo-btn" disabled>Create</button>
+      </div>
     </section>
 
     <section id="controls">

@@ -1,7 +1,10 @@
 const { ipcRenderer } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {
-  const createRepoSelectBtn = document.getElementById('create-repo-select');
+  const selectDirBtn = document.getElementById('select-dir-btn');
+  const selectDirBtn2 = document.getElementById('select-dir-btn2');
+  const selectDirBtn3 = document.getElementById('select-dir-btn3');
+
   const createRepoPathLabel = document.getElementById('create-repo-path');
   const createRepoCreateBtn = document.getElementById('create-repo-create');
 
@@ -31,10 +34,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('active-repo').innerText = changeRepoSelect.options[changeRepoSelect.selectedIndex].innerText;;
   });
 
-  createRepoSelectBtn.addEventListener('click', () => {
+  selectDirBtn.addEventListener('click', () => {
     ipcRenderer.invoke('open-folder-dialog').then((folderPath) => {
       if (folderPath) {
         createRepoPathLabel.innerText = folderPath;
+      }
+    });
+  });
+
+  selectDirBtn2.addEventListener('click', () => {
+    ipcRenderer.invoke('open-folder-dialog').then((folderPath) => {
+      if (folderPath) {
+        //do something with this folder
+      }
+    });
+  });
+
+  selectDirBtn3.addEventListener('click', () => {
+    ipcRenderer.invoke('open-folder-dialog').then((folderPath) => {
+      if (folderPath) {
+        //do something with this folder
       }
     });
   });
@@ -55,6 +74,29 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   //for debug purposes only
+  const selectRepoBtn = document.getElementById('repo-select-btn');
+  selectRepoBtn.addEventListener('click', () => {
+    const val = document.getElementById('repo-select').value;
+    
+    let createDiv = document.getElementById('create');
+    let cloneDiv = document.getElementById('clone');
+    let pushDiv = document.getElementById('push-clone');
+
+    if (val == 1){
+      createDiv.removeAttribute("hidden", "hidden");
+      cloneDiv.setAttribute("hidden", "hidden");
+      pushDiv.setAttribute("hidden", "hidden");;
+    } else if (val == 2) {
+      createDiv.setAttribute("hidden", "hidden");
+      cloneDiv.removeAttribute("hidden", "hidden");
+      pushDiv.setAttribute("hidden", "hidden");
+    } else if (val == 3) {
+      createDiv.setAttribute("hidden", "hidden");
+      cloneDiv.setAttribute("hidden", "hidden");
+      pushDiv.removeAttribute("hidden", "hidden");
+    }
+  });
+
   const clearJSONBtn = document.getElementById('clear-json');
   clearJSONBtn.addEventListener('click', () => {
     ipcRenderer.send('clear-json');
