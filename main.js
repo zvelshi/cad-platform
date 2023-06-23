@@ -1,21 +1,32 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const { s3 } = require('./s3_client.js');
 const { dbdoc } = require('./db_client.js');
-const Store = require('electron-store');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-const { CreateBucketCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
-const { PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const {
+  CreateBucketCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+} = require('@aws-sdk/client-s3');
 
+const { 
+  PutCommand, 
+  GetCommand, 
+  ScanCommand 
+} = require('@aws-sdk/lib-dynamodb');
+
+const Store = require('electron-store');
 require('electron-reload')(__dirname, {
-  electron: require(`${__dirname}/node_modules/electron`)
+  electron: require(`${__dirname}/node_modules/electron`),
 });
 
 const store = new Store();
 let mainWindow;
+
+// ------------------- Start of mainWindow code -------------------
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
