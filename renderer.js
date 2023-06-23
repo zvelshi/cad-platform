@@ -1,9 +1,6 @@
-const { ipcRenderer, dialog } = require('electron');
+const { ipcRenderer } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {
-  const repoOptions = document.getElementById('repo-options');
-  const controls = document.getElementById('controls');
-
   const organization = document.getElementById('organization');
 
   const selectRepoBtn = document.getElementById('repo-select-btn');

@@ -20,7 +20,7 @@ const {
   ListObjectsV2Command,
 } = require('@aws-sdk/client-s3');
 
-// dynamodb client ai commands
+// dynamodb client api commands
 const { 
   PutCommand, 
   GetCommand, 
@@ -35,6 +35,7 @@ require('electron-reload')(__dirname, {
 
 // electron-store instance for local storage
 const store = new Store();
+module.exports = { store };
 
 // electron main window instance
 let mainWindow;
@@ -120,7 +121,7 @@ const createWindow = () => {
 
   // get the current active repo as an object
   ipcMain.handle('get-active-repo', async (event) => {
-    return await getActiveRepo();
+    return await getActiveRepoCloud();
   });
 
   // set the current active repo by unique name
@@ -447,7 +448,7 @@ async function getBucketHierarchy(bucketName) {
 }
 
 // get the current active repo as an object from the cloud db
-async function getActiveRepo(){
+async function getActiveRepoCloud(){
 
   // fetch the unique name of the active repo from local storage
   const activeRepo = store.get('activeRepo');
@@ -510,3 +511,5 @@ async function getActiveRepoLocal(){
   }
   return null;
 }
+
+//-------------------end of helper functions-------------------
