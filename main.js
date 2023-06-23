@@ -219,8 +219,9 @@ async function getBucketHierarchyClone(bucketName) {
   }));
   const contents = res.Contents;
 
+  const friendlyName = store.get(bucketName).friendlyName;
   const hierarchy = {
-    name: bucketName,
+    name: friendlyName,
     path: '',
     type: 'folder',
     isModified: false,
