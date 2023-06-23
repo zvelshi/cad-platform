@@ -1,4 +1,4 @@
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, dialog } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {
   const repoOptions = document.getElementById('repo-options');
@@ -77,6 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   pullBtn.addEventListener('click', () => {
     ipcRenderer.invoke('pull-repo').then(() => {
+      return;
+    });
+  });
+
+  pushBtn.addEventListener('click',  async () => {
+    ipcRenderer.invoke('push-repo').then(() => {
       return;
     });
   });
