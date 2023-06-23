@@ -5,6 +5,7 @@ const Store = require('electron-store');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const { CreateBucketCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { PutCommand, GetCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
@@ -146,16 +147,16 @@ const createWindow = () => {
   ipcMain.handle('pull-repo', async (event) => {
     const activeRepo = store.get('activeRepo');
     const localRepos = await getLocalRepos();
-
+  
     for (let i = 0; i < localRepos.length; i++) {
-      if(localRepos[i].uniqueName === activeRepo) {
+      if (localRepos[i].uniqueName === activeRepo) {
         const hierarchy = await getBucketHierarchyClone(localRepos[i].uniqueName);
         const folderPath = localRepos[i].folderPath.slice(0, localRepos[i].folderPath.lastIndexOf('/'));
-        await cloneCloudRepo(hierarchy, folderPath, localRepos[i].uniqueName);
+        await pullCloudRepo(hierarchy, folderPath, localRepos[i].uniqueName);
       }
     }
-
-    //alert when done pull
+  
+    // Alert when done pulling
     const options = {
       type: 'info',
       title: 'Pull Complete',
@@ -164,12 +165,6 @@ const createWindow = () => {
     };
     dialog.showMessageBox(null, options);
   });
-
-  //-------------------start of debug section-------------------
-  ipcMain.on('clear-json', (event) => {
-    store.clear();
-  });
-  //-------------------end of debug section-------------------
 };
 
 app.whenReady().then(() => {
@@ -182,6 +177,77 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+//-------------------end of mainWindow code----------------------
+
+//-------------------start of helper functions-------------------
+
+async function pullCloudRepo(hierarchy, folderPath, bucketName) {
+  const destinationPath = path.join(folderPath, hierarchy.name);
+
+  if (hierarchy.type === 'file') {
+    const localFilePath = destinationPath;
+    const isModified = await isFileModified(bucketName, hierarchy.path, localFilePath);
+
+    if (isModified) {
+      const parentDir = path.dirname(localFilePath);
+      await fs.promises.mkdir(parentDir, { recursive: true });
+      await getFileContentFromS3(hierarchy.path, localFilePath, bucketName);
+    }
+  } else if (hierarchy.type === 'folder') {
+    if (!fs.existsSync(destinationPath)) {
+      await fs.promises.mkdir(destinationPath, { recursive: true });
+    }
+
+    for (const child of hierarchy.children) {
+      await pullCloudRepo(child, destinationPath, bucketName);
+    }
+  }
+}
+
+async function isFileModified(bucketName, filePath, localFilePath) {
+  if (!fs.existsSync(localFilePath)) {
+    return true; // File doesn't exist locally, consider it modified
+  }
+
+  const remoteHash = await calculateFileHash(bucketName, filePath);
+  const localHash = await calculateLocalFileHash(localFilePath);
+
+  return remoteHash !== localHash;
+}
+
+async function calculateFileHash(bucketName, filePath) {
+  const params = {
+    Bucket: bucketName,
+    Key: filePath,
+  };
+
+  try {
+    const data = await s3.send(new GetObjectCommand(params));
+    const stream = data.Body;
+
+    return new Promise((resolve, reject) => {
+      const hash = crypto.createHash('sha256');
+      stream.on('data', (chunk) => hash.update(chunk));
+      stream.on('end', () => resolve(hash.digest('hex')));
+      stream.on('error', (err) => reject(err));
+    });
+  } catch (err) {
+    console.error('Error calculating file hash:', err);
+    return null;
+  }
+}
+
+async function calculateLocalFileHash(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+
+    stream.on('data', (chunk) => hash.update(chunk));
+    stream.on('end', () => resolve(hash.digest('hex')));
+    stream.on('error', (err) => reject(err));
+  });
+}
 
 async function cloneCloudRepo(hierarchy, folderPath, bucketName) {
   const destinationPath = path.join(folderPath, hierarchy.name);

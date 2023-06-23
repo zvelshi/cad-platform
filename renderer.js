@@ -1,4 +1,4 @@
-const { ipcRenderer, ipcMain } = require('electron');
+const { ipcRenderer } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {
   const org = document.getElementById('organization');
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   pullBtn.addEventListener('click', () => {
     ipcRenderer.invoke('pull-repo').then(() => {
-      alert('pull complete');
+      return;
     });
   });
 
@@ -88,8 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     ipcRenderer.send('create-repo', repoData);
     document.getElementById('active-repo').innerText = friendlyName;
-    pullBtn.removeAttribute('disabled', 'disabled');
-    pushBtn.removeAttribute('disabled', 'disabled');
   });
 
   selectRepoBtn.addEventListener('click', () => {
@@ -113,7 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cloneRepoCloudSelect.innerHTML = '';
         
         orgRepos.forEach((repo) => {
-          console.log(repo);
           const option = document.createElement('option');
           option.value = repo.id;
           option.innerText = repo.friendlyName + ' - ' + repo.organization;
@@ -132,14 +129,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const repoUniqueName = cloneRepoCloudSelect.options[cloneRepoCloudSelect.selectedIndex].value;
     const folderPathWithoutFName = document.getElementById('clone-repo-cloud-path').textContent + '\\';
     ipcRenderer.invoke('clone-repo', repoUniqueName, folderPathWithoutFName);
-    pullBtn.removeAttribute('disabled', 'disabled');
-    pushBtn.removeAttribute('disabled', 'disabled');
-  });
-
-
-  //for debug purposes only
-  const clearJSONBtn = document.getElementById('clear-json');
-  clearJSONBtn.addEventListener('click', () => {
-    ipcRenderer.send('clear-json');
   });
 });
