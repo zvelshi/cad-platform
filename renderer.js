@@ -1,3 +1,11 @@
+/*
+* File Name: renderer.js
+* Author: Zac Velshi
+* Date Created: 2023-06-08
+* Last Modified: 2023-06-23
+* Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
+*/
+
 const { ipcRenderer } = require('electron');
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,3 +1,11 @@
+/*
+* File Name: db_client.js
+* Author: Zac Velshi
+* Date Created: 2023-06-20
+* Last Modified: 2023-06-20
+* Purpose: This file contains the code to interface with the AWS DynamoDB API.
+*/
+
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { fromIni } = require("@aws-sdk/credential-provider-ini");
 const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");

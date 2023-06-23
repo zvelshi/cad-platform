@@ -1,3 +1,11 @@
+/*
+* File Name: main.js
+* Author: Zac Velshi
+* Date Created: 2023-06-08
+* Last Modified: 2023-06-23
+* Purpose: This file interacts with remote databases and AWS file storage solutions to carry out the logic commands to sync and interface a local directory with a remote directory
+*/
+
 // electron app main process
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 
@@ -28,14 +36,13 @@ const {
 } = require('@aws-sdk/lib-dynamodb');
 
 // electron-reload instance auto reloads
-const Store = require('electron-store');
 require('electron-reload')(__dirname, {
   electron: require(`${__dirname}/node_modules/electron`),
 });
 
 // electron-store instance for local storage
+const Store = require('electron-store');
 const store = new Store();
-module.exports = { store };
 
 // electron main window instance
 let mainWindow;
@@ -46,12 +53,13 @@ const createWindow = () => {
 
   // main window parameters
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 1024,
+    height: 768,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
-    }
+    },
+    autoHideMenuBar: true,
   });
 
   // load index.html
