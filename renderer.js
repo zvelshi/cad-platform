@@ -24,20 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const pushBtn = document.getElementById('push-btn');
   const pullBtn = document.getElementById('pull-btn');
 
-  organization.addEventListener('input', () => {
-    console.log(organization.value);
-    if (organization.value === '') {
-      repoOptions.setAttribute('hidden', 'hidden');
-      controls.setAttribute('hidden', 'hidden');
-    } else {
-      repoOptions.removeAttribute('hidden', 'hidden');
-      controls.removeAttribute('hidden', 'hidden');
-    }
-  });
-
   ipcRenderer.invoke('get-active-repo').then((activeRepo) => {
     if (activeRepo){
       document.getElementById('active-repo').innerText = activeRepo.friendlyName + ' - ' + activeRepo.organization;
+      organization.value = activeRepo.organization;
     } else {
       document.getElementById('active-repo').innerText = 'No active repo';
     }
