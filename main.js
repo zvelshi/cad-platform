@@ -123,15 +123,24 @@ const createWindow = () => {
     store.set(repoUniqueName, {
       friendlyName: repoData.friendlyName,
       organization: repoData.organization,
-      folderPath: repoData.folderPath
+      folderPath: repoData.folderPath + '/' + repoData.friendlyName
     });
     
     //clone s3 bucket
     const hierarchy = await getBucketHierarchyClone(repoData.uniqueName);
-    cloneCloudRepo(hierarchy, repoData.folderPath, repoData.uniqueName);
+    await cloneCloudRepo(hierarchy, repoData.folderPath, repoData.uniqueName);
 
     //set active repo
     store.set('activeRepo', repoUniqueName);
+
+    //alert when done clone
+    const options = {
+      type: 'info',
+      title: 'Clone Complete',
+      message: 'The repository has been cloned successfully.',
+      buttons: ['OK']
+    };
+    dialog.showMessageBox(null, options);
   });
 
   ipcMain.handle('pull-repo', async (event) => {
@@ -141,16 +150,26 @@ const createWindow = () => {
     for (let i = 0; i < localRepos.length; i++) {
       if(localRepos[i].uniqueName === activeRepo) {
         const hierarchy = await getBucketHierarchyClone(localRepos[i].uniqueName);
-        cloneCloudRepo(hierarchy, localRepos[i].folderPath, localRepos[i].uniqueName);
+        const folderPath = localRepos[i].folderPath.slice(0, localRepos[i].folderPath.lastIndexOf('/'));
+        await cloneCloudRepo(hierarchy, folderPath, localRepos[i].uniqueName);
       }
     }
+
+    //alert when done pull
+    const options = {
+      type: 'info',
+      title: 'Pull Complete',
+      message: 'The repository has been pulled successfully.',
+      buttons: ['OK']
+    };
+    dialog.showMessageBox(null, options);
   });
 
-  //start of debug section
+  //-------------------start of debug section-------------------
   ipcMain.on('clear-json', (event) => {
     store.clear();
   });
-  //end of debug section
+  //-------------------end of debug section-------------------
 };
 
 app.whenReady().then(() => {
@@ -175,13 +194,14 @@ async function cloneCloudRepo(hierarchy, folderPath, bucketName) {
       // Create parent directories recursively
       const parentDir = path.dirname(localFilePath);
       await fs.promises.mkdir(parentDir, { recursive: true });
-
     }
   } else if (hierarchy.type === 'folder') {
-
+    // Create the folder at the destination
     if (!fs.existsSync(destinationPath)) {
       await fs.promises.mkdir(destinationPath, { recursive: true });
     }
+
+    // Recursively clone child files and folders
     for (const child of hierarchy.children) {
       await cloneCloudRepo(child, destinationPath, bucketName);
     }
