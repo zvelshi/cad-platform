@@ -60,6 +60,7 @@ const createWindow = () => {
       contextIsolation: false
     },
     autoHideMenuBar: true,
+    icon: __dirname + '/no_gc.ico',
   });
 
   // load index.html
@@ -144,10 +145,7 @@ const createWindow = () => {
 
   // returns a list of cloud repos as an array of objects
   ipcMain.handle('get-cloud-repos', async (event) => {
-    const res = await dbdoc.send(new ScanCommand({
-      TableName: 'repositories',
-    }));
-    return res.Items;
+    return await getCloudRepos();
   });
 
   // clone an existing repo from the cloud to a local instance
@@ -184,13 +182,7 @@ const createWindow = () => {
     store.set('activeRepo', repoUniqueName);
 
     // alert when done cloning
-    const options = {
-      type: 'info',
-      title: 'Clone Complete',
-      message: 'The repository has been cloned successfully.',
-      buttons: ['OK']
-    };
-    dialog.showMessageBox(null, options);
+    await alertDialog('Clone Complete', 'The repository has been cloned successfully.', ['OK']);
   });
 
   // pull changes from an existing repo from the cloud to an existing local instance
@@ -209,13 +201,7 @@ const createWindow = () => {
     await pullCloudRepo(hierarchy, folderPath, activeRepo.uniqueName);
   
     // alert when done pulling
-    const options = {
-      type: 'info',
-      title: 'Pull Complete',
-      message: 'The repository has been pulled successfully.',
-      buttons: ['OK']
-    };
-    dialog.showMessageBox(null, options);
+    await alertDialog('Pull Complete', 'The repository has been pulled successfully.', ['OK']);
   });
 };
 
@@ -500,6 +486,14 @@ async function getLocalRepos(){
   return localRepos;
 }
 
+// return an array of cloud repos as objects from the cloud db
+async function getCloudRepos(){
+  const res = await dbdoc.send(new ScanCommand({
+    TableName: 'repositories',
+  }));
+  return res.Items;
+}
+
 // get the current active repo as an object from local storage (JSON)
 async function getActiveRepoLocal(){
 
@@ -518,6 +512,16 @@ async function getActiveRepoLocal(){
     }
   }
   return null;
+}
+
+async function alertDialog(title, message, buttons){
+  const options = {
+    type: 'info',
+    title: title,
+    message: message,
+    buttons: buttons
+  };
+  dialog.showMessageBoxSync(null, options);
 }
 
 //-------------------end of helper functions-------------------
