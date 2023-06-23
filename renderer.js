@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
       pushDiv.setAttribute("hidden", "hidden");
 
       ipcRenderer.invoke('get-cloud-repos').then((repos) => {
-        const orgRepos = repos.filter((repo) => repo.organization === org.value);
+        const orgRepos = repos.filter((repo) => repo.organization === organization.value);
         cloneRepoCloudSelect.innerHTML = '';
         
         orgRepos.forEach((repo) => {

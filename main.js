@@ -162,7 +162,8 @@ const createWindow = () => {
     for (let i = 0; i < localRepos.length; i++) {
       if (localRepos[i].uniqueName === activeRepo) {
         const hierarchy = await getBucketHierarchyClone(localRepos[i].uniqueName);
-        const folderPath = localRepos[i].folderPath.slice(0, localRepos[i].folderPath.lastIndexOf('/'));
+        const folderPath = localRepos[i].folderPath.slice(0, localRepos[i].folderPath.lastIndexOf('\\'));
+        console.log(folderPath);
         await pullCloudRepo(hierarchy, folderPath, localRepos[i].uniqueName);
       }
     }
