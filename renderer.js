@@ -11,7 +11,7 @@ const { ipcRenderer } = require('electron');
 document.addEventListener('DOMContentLoaded', () => {
   const organization = document.getElementById('organization');
 
-  const selectRepoBtn = document.getElementById('repo-select-btn');
+  const selectRepoSelect = document.getElementById('repo-select');
 
   const selectDirBtn = document.getElementById('select-dir-btn');
   const selectDirBtn2 = document.getElementById('select-dir-btn2');
@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const createRepoCreateBtn = document.getElementById('create-repo-create');
 
   const changeRepoSelect = document.getElementById('change-repo-select');
-  const changeRepoSelectBtn = document.getElementById('change-repo-select-btn');
 
   const cloneRepoCloudSelect = document.getElementById('clone-repo-cloud-select');
   const cloneRepoCloudBtn = document.getElementById('clone-repo-cloud-btn');
@@ -49,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  changeRepoSelectBtn.addEventListener('click', () => {
+  changeRepoSelect.addEventListener('input', () => {
     const activeRepo = changeRepoSelect.options[changeRepoSelect.selectedIndex].value;
     ipcRenderer.invoke('set-active-repo', activeRepo);
     document.getElementById('active-repo').innerText = changeRepoSelect.options[changeRepoSelect.selectedIndex].innerText;;
@@ -107,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('active-repo').innerText = friendlyName;
   });
 
-  selectRepoBtn.addEventListener('click', () => {
+  selectRepoSelect.addEventListener('input', () => {
     const val = document.getElementById('repo-select').value;
     
     let createDiv = document.getElementById('create');
