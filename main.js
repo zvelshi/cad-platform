@@ -2,7 +2,7 @@
 * File Name: main.js
 * Author: Zac Velshi
 * Date Created: 2023-06-08
-* Last Modified: 2023-06-23
+* Last Modified: 2023-06-28
 * Purpose: This file interacts with remote databases and AWS file storage solutions to carry out the logic commands to sync and interface a local directory with a remote directory
 */
 
@@ -26,13 +26,14 @@ const {
   CreateBucketCommand,
   GetObjectCommand,
   ListObjectsV2Command,
+  PutObjectCommand,
 } = require('@aws-sdk/client-s3');
 
 // dynamodb client api commands
 const { 
   PutCommand, 
   GetCommand, 
-  ScanCommand 
+  ScanCommand,
 } = require('@aws-sdk/lib-dynamodb');
 
 // electron-reload instance auto reloads
@@ -203,6 +204,53 @@ const createWindow = () => {
     // alert when done pulling
     await alertDialog('Pull Complete', 'The repository has been pulled successfully.', ['OK']);
   });
+
+  ipcMain.handle('clone-local-repo', async (event, repoData) => {
+    // create uuid
+    const uniqueName = uuidv4();
+
+    // create local json entry
+    store.set(uniqueName, {
+      friendlyName: repoData.friendlyName,
+      organization: repoData.organization,
+      folderPath: repoData.folderPath
+    });
+
+    // set as the active repo
+    store.set('activeRepo', uniqueName);
+
+    // create dynamodb entry
+    try {
+      await dbdoc.send(new PutCommand({ 
+        TableName: 'repositories',
+        Item: {
+          id: uniqueName,
+          friendlyName: repoData.friendlyName,
+          organization: repoData.organization,
+        }
+      }));
+    } catch (err) {
+      console.log(err);
+    } 
+
+    // create s3 bucket using the unique name
+    const s3Params = {
+      Bucket: uniqueName,
+      ACL: 'private'
+    };
+
+    try {
+      await s3.send(new CreateBucketCommand(s3Params));
+    } catch (err) {
+      console.log(err);
+    }
+
+    // clone local repo to cloud
+    await cloneLocalRepo(uniqueName, repoData.folderPath);
+    
+    // alert when done cloning
+    await alertDialog('Clone Complete', 'The repository has been cloned successfully.', ['OK']);
+  });
 };
 
 // create the main window when the app is ready
@@ -221,6 +269,42 @@ app.on('window-all-closed', () => {
 //-------------------end of mainWindow code----------------------
 
 //-------------------start of helper functions-------------------
+
+// clone the local repo to the cloud
+async function cloneLocalRepo(uniqueName, folderPath) {
+  // read contents of local file dir
+  const files = await fs.promises.readdir(folderPath, { withFileTypes: true });
+
+  // loop through each file
+  for (const file of files) {
+
+    // get the file path
+    const filePath = path.join(folderPath, file.name);
+
+    // check if the file is a directory
+    if (file.isDirectory()) {
+      
+      // If it's a folder, create a corresponding folder in the S3 bucket
+      const folderKey = file.name + '/';
+      await s3.send(new PutObjectCommand({
+        Bucket: uniqueName,
+        Key: folderKey,
+      }));
+      
+      // recursively clone the folder
+      await cloneLocalRepo(uniqueName, filePath);
+
+    } else {
+      // If it's a file, upload the file to the S3 bucket
+      const fileContentStream = fs.createReadStream(filePath);
+      await s3.send(new PutObjectCommand({
+        Bucket: uniqueName,
+        Key: file.name,
+        Body: fileContentStream,
+      }));
+    }
+  }
+}
 
 // recursively pull the cloud repo to the local instance
 async function pullCloudRepo(hierarchy, folderPath, bucketName) {

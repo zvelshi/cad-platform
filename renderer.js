@@ -2,7 +2,7 @@
 * File Name: renderer.js
 * Author: Zac Velshi
 * Date Created: 2023-06-08
-* Last Modified: 2023-06-23
+* Last Modified: 2023-06-28
 * Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
 */
 
@@ -25,12 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const cloneRepoCloudSelect = document.getElementById('clone-repo-cloud-select');
   const cloneRepoCloudBtn = document.getElementById('clone-repo-cloud-btn');
 
+  const cloneRepoLocalBtn = document.getElementById('clone-local-repo-btn');
+
   const pushBtn = document.getElementById('push-btn');
   const pullBtn = document.getElementById('pull-btn');
 
   ipcRenderer.invoke('get-active-repo').then((activeRepo) => {
     if (activeRepo){
-      document.getElementById('active-repo').innerText = activeRepo.friendlyName + ' - ' + activeRepo.organization;
+     document.getElementById('active-repo').innerText = activeRepo.friendlyName + ' - ' + activeRepo.organization;
       organization.value = activeRepo.organization;
     } else {
       document.getElementById('active-repo').innerText = 'No active repo';
@@ -74,19 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
   selectDirBtn3.addEventListener('click', () => {
     ipcRenderer.invoke('open-folder-dialog').then((folderPath) => {
       if (folderPath) {
-        //do something with this folder
+        document.getElementById('clone-local-repo-path').textContent = folderPath;
+        document.getElementById('clone-local-repo-friendly-name').textContent = folderPath.split('\\').pop();
+        document.getElementById('clone-local-repo-org').textContent = organization.value;
+        cloneRepoLocalBtn.removeAttribute('disabled', 'disabled');
       }
     });
   });
 
   pullBtn.addEventListener('click', () => {
     ipcRenderer.invoke('pull-repo').then(() => {
-      return;
-    });
-  });
-
-  pushBtn.addEventListener('click',  async () => {
-    ipcRenderer.invoke('push-repo').then(() => {
       return;
     });
   });
@@ -139,6 +138,32 @@ document.addEventListener('DOMContentLoaded', () => {
       cloneDiv.setAttribute("hidden", "hidden");
       pushDiv.removeAttribute("hidden", "hidden");
     }
+  });
+
+  cloneRepoLocalBtn.addEventListener('click',  async () => {
+
+    // get repo data
+    const repoData = {
+      friendlyName: document.getElementById('clone-local-repo-friendly-name').textContent,
+      organization: document.getElementById('clone-local-repo-org').textContent,
+      folderPath: document.getElementById('clone-local-repo-path').textContent
+    };  
+
+    // clone repo
+    ipcRenderer.invoke('clone-local-repo', repoData);
+
+    // update active repo and repo list
+    ipcRenderer.invoke('get-local-repos').then((repos) => {
+      changeRepoSelect.innerHTML = '';
+
+      repos.forEach((repo) => {
+        const option = document.createElement('option');
+        option.value = repo.uniqueName;
+        option.innerText = repo.friendlyName + ' - ' + repo.organization;
+        changeRepoSelect.appendChild(option);
+      });
+    });
+    document.getElementById('active-repo').innerText = repoData.friendlyName + ' - ' + repoData.organization;
   });
 
   cloneRepoCloudBtn.addEventListener('click', () => {
