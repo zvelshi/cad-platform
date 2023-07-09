@@ -222,24 +222,6 @@ const createWindow = () => {
 
     await alertDialog('Clone Complete', 'The repository has been cloned successfully.', ['OK']);
   });
-
-  ipcMain.handle('listen-for-changes', async (event, watcher, folderPath) => {
-    if (watcher){
-      watcher.close();
-    }
-
-    watcher = chokidar.watch(folderPath, {
-      ignoreInitial: true,
-      persistent: true,
-      usePolling: false,
-    });
-    
-    watcher.on('all' , async (event, path) => {
-      handleFileChange(event, filePath);
-    });
-
-    sendInitialLocalChanges();    
-  });
 };
 
 app.whenReady().then(() => {
@@ -513,7 +495,6 @@ async function getCloudRepos(){
 }
 
 async function getActiveRepoLocal(){
-
   const activeRepo = store.get('activeRepo');
 
   const localRepos = await getLocalRepos();

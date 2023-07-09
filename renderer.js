@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
       changeRepoSelect.appendChild(option);
     });
   });
-  
+
   changeRepoSelect.addEventListener('input', () => {
     const activeRepo = changeRepoSelect.options[changeRepoSelect.selectedIndex].value;
     ipcRenderer.invoke('set-active-repo', activeRepo);
@@ -85,9 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   pullBtn.addEventListener('click', () => {
-    ipcRenderer.invoke('pull-repo').then(() => {
-      return;
-    });
+    ipcRenderer.invoke('pull-repo');
   });
 
   createRepoCreateBtn.addEventListener('click', () => { 
