@@ -2,7 +2,7 @@
 * File Name: renderer.js
 * Author: Zac Velshi
 * Date Created: 2023-06-08
-* Last Modified: 2023-06-28
+* Last Modified: 2023-07-08
 * Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
 */
 
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const pushBtn = document.getElementById('push-btn');
   const pullBtn = document.getElementById('pull-btn');
 
-  ipcRenderer.invoke('get-active-repo').then((activeRepo) => {
+  ipcRenderer.invoke('get-active-repo-cloud').then((activeRepo) => {
     if (activeRepo){
      document.getElementById('active-repo').innerText = activeRepo.friendlyName + ' - ' + activeRepo.organization;
       organization.value = activeRepo.organization;
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
       changeRepoSelect.appendChild(option);
     });
   });
-
+  
   changeRepoSelect.addEventListener('input', () => {
     const activeRepo = changeRepoSelect.options[changeRepoSelect.selectedIndex].value;
     ipcRenderer.invoke('set-active-repo', activeRepo);
