@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   ipcRenderer.invoke('get-active-repo-cloud').then((activeRepo) => {
     if (activeRepo){
-     document.getElementById('active-repo').innerText = activeRepo.friendlyName + ' - ' + activeRepo.organization;
+      document.getElementById('active-repo').innerText = activeRepo.friendlyName + ' - ' + activeRepo.organization;
       organization.value = activeRepo.organization;
     } else {
       document.getElementById('active-repo').innerText = 'No active repo';
@@ -48,6 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
       option.innerText = repo.friendlyName + ' - ' + repo.organization;
       changeRepoSelect.appendChild(option);
     });
+  });
+
+  ipcRenderer.invoke('get-active-repo-local').then((activeRepo) => {
+    if (activeRepo){
+      ipcRenderer.invoke('check-local-directory', activeRepo).then((diffResult) => {
+        updateList(diffResult);
+      });
+    }
   });
 
   changeRepoSelect.addEventListener('input', () => {
@@ -170,3 +178,61 @@ document.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.invoke('clone-repo', repoUniqueName, folderPathWithoutFName);
   });
 });
+
+function updateList(diffResult) {
+  const changesList = document.getElementById('changes-list');
+  changesList.innerHTML = ''; // Clear the existing list
+
+  const newFiles = diffResult.newFiles;
+  const modifiedFiles = diffResult.modifiedFiles;
+  const deletedFiles = diffResult.deletedFiles;
+
+  // Helper function to create a list item element with the specified text
+  function createListItem(text) {
+    const li = document.createElement('li');
+    li.textContent = text;
+    return li;
+  }
+
+  // Display new files
+  if (newFiles.length > 0) {
+    const newFilesHeader = document.createElement('h4');
+    newFilesHeader.textContent = 'New Files:';
+    changesList.appendChild(newFilesHeader);
+
+    const newFilesList = document.createElement('ul');
+    for (const filePath of newFiles) {
+      const listItem = createListItem(`${filePath}`);
+      newFilesList.appendChild(listItem);
+    }
+    changesList.appendChild(newFilesList);
+  }
+
+  // Display modified files
+  if (modifiedFiles.length > 0) {
+    const modifiedFilesHeader = document.createElement('h4');
+    modifiedFilesHeader.textContent = 'Modified Files:';
+    changesList.appendChild(modifiedFilesHeader);
+
+    const modifiedFilesList = document.createElement('ul');
+    for (const filePath of modifiedFiles) {
+      const listItem = createListItem(`${filePath}`);
+      modifiedFilesList.appendChild(listItem);
+    }
+    changesList.appendChild(modifiedFilesList);
+  }
+
+  // Display deleted files
+  if (deletedFiles.length > 0) {
+    const deletedFilesHeader = document.createElement('h4');
+    deletedFilesHeader.textContent = 'Deleted Files:';
+    changesList.appendChild(deletedFilesHeader);
+
+    const deletedFilesList = document.createElement('ul');
+    for (const filePath of deletedFiles) {
+      const listItem = createListItem(`${filePath}`);
+      deletedFilesList.appendChild(listItem);
+    }
+    changesList.appendChild(deletedFilesList);
+  }
+}

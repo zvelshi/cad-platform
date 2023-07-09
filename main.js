@@ -20,7 +20,6 @@ const crypto = require('crypto');
 // path,  fs, chokidar: file system
 const path = require('path');
 const fs = require('fs');
-const chokidar = require('chokidar');
 
 // s3 client api commands
 const {
@@ -140,7 +139,6 @@ const createWindow = () => {
   });
 
   ipcMain.handle('clone-repo', async (event, repoUniqueName, folderPathWithoutFName) => {
-
     const res = await dbdoc.send(new GetCommand({
       TableName: 'repositories',
       Key: {
@@ -221,6 +219,10 @@ const createWindow = () => {
     await cloneLocalRepo(uniqueName, repoData.folderPath);
 
     await alertDialog('Clone Complete', 'The repository has been cloned successfully.', ['OK']);
+  });
+
+  ipcMain.handle('check-local-directory', async (event, activeRepo) => {
+    return await checkLocalDirectory(activeRepo);
   });
 };
 
@@ -451,7 +453,6 @@ async function getBucketHierarchy(bucketName) {
 }
 
 async function getActiveRepoCloud(){
-
   const activeRepo = store.get('activeRepo');
 
   if (activeRepo) {
@@ -516,6 +517,93 @@ async function alertDialog(title, message, buttons){
     buttons: buttons
   };
   dialog.showMessageBoxSync(null, options);
+}
+
+async function getLocalHierarchy(folderPath) {
+  const friendlyName = path.basename(folderPath);
+
+  const stats = await fs.promises.stat(folderPath);
+
+  const hierarchy = {
+    name: friendlyName,
+    path: folderPath,
+    type: stats.isDirectory() ? 'folder' : 'file',
+    isModified: false,
+    children: [],
+  };
+
+  if (stats.isDirectory()) {
+    const dirEntries = await fs.promises.readdir(folderPath, { withFileTypes: true });
+
+    for (const entry of dirEntries) {
+      const entryPath = path.join(folderPath, entry.name);
+      const childHierarchy = await getLocalHierarchy(entryPath);
+      hierarchy.children.push(childHierarchy);
+    }
+  }
+  
+  return hierarchy;
+}
+
+async function compareHierarchies(localHierarchy, cloudHierarchy, bucketName, diffResult) {
+  await compareChildren(localHierarchy, cloudHierarchy, bucketName, diffResult);
+}
+
+async function compareChildren(localNode, cloudNode, bucketName, diffResult) {
+  const localChildren = localNode.children;
+  const cloudChildren = cloudNode.children;
+
+  for (const localChild of localChildren) {
+    const matchingCloudChild = cloudChildren.find((cloudChild) => cloudChild.name === localChild.name);
+    if (!matchingCloudChild) {
+      if (localChild.type === 'file') {
+        diffResult.newFiles.push(localChild.path);
+      } else {
+        diffResult.newFiles.push(localChild.path + '/');
+      }
+    } else {
+      if (localChild.type === 'file' && matchingCloudChild.type === 'file') {
+        const isModified = await isFileModified(bucketName, matchingCloudChild.path, localChild.path);
+        if (isModified) {
+          diffResult.modifiedFiles.push(localChild.path);
+        }
+      } else if (localChild.type === 'folder' && matchingCloudChild.type === 'folder') {
+        await compareChildren(localChild, matchingCloudChild, bucketName, diffResult);
+      }
+    }
+  }
+
+  for (const cloudChild of cloudChildren) {
+    const matchingLocalChild = localChildren.find((localChild) => localChild.name === cloudChild.name);
+
+    if (!matchingLocalChild) {
+      if (cloudChild.type === 'file') {
+        diffResult.deletedFiles.push(cloudChild.path);
+      } else {
+        diffResult.deletedFiles.push(cloudChild.path + '/');
+      }
+    }
+  }
+}
+
+async function checkLocalDirectory(activeRepo){
+  const localHierarchy = await getLocalHierarchy(activeRepo.folderPath);
+    const cloudHierarchy = await getBucketHierarchy(activeRepo.uniqueName);
+  
+    const diffResult = {
+      newFiles: [],
+      modifiedFiles: [],
+      deletedFiles: [],
+    };
+  
+    await compareHierarchies(localHierarchy, cloudHierarchy, activeRepo.uniqueName, diffResult);
+    ipcMain.emit('update-list', diffResult);
+  
+    console.log('New Files:', diffResult.newFiles);
+    console.log('Modified Files:', diffResult.modifiedFiles);
+    console.log('Deleted Files:', diffResult.deletedFiles);
+    
+    return diffResult;
 }
 
 //-------------------end of helper functions-------------------
