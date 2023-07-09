@@ -56,6 +56,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateList(diffResult);
       });
     }
+
+    ipcRenderer.on('update-list', (event, diffResult) => {
+      updateList(diffResult);
+    });
   });
 
   changeRepoSelect.addEventListener('input', () => {
@@ -196,13 +200,13 @@ function updateList(diffResult) {
 
   // Display new files
   if (newFiles.length > 0) {
-    const newFilesHeader = document.createElement('h4');
+    const newFilesHeader = document.createElement('h3');
     newFilesHeader.textContent = 'New Files:';
     changesList.appendChild(newFilesHeader);
 
     const newFilesList = document.createElement('ul');
-    for (const filePath of newFiles) {
-      const listItem = createListItem(`${filePath}`);
+    for (const file of newFiles) {
+      const listItem = createListItem(`New File: ${file}`);
       newFilesList.appendChild(listItem);
     }
     changesList.appendChild(newFilesList);
@@ -210,13 +214,13 @@ function updateList(diffResult) {
 
   // Display modified files
   if (modifiedFiles.length > 0) {
-    const modifiedFilesHeader = document.createElement('h4');
+    const modifiedFilesHeader = document.createElement('h3');
     modifiedFilesHeader.textContent = 'Modified Files:';
     changesList.appendChild(modifiedFilesHeader);
 
     const modifiedFilesList = document.createElement('ul');
-    for (const filePath of modifiedFiles) {
-      const listItem = createListItem(`${filePath}`);
+    for (const file of modifiedFiles) {
+      const listItem = createListItem(`Modified File: ${file}`);
       modifiedFilesList.appendChild(listItem);
     }
     changesList.appendChild(modifiedFilesList);
@@ -224,13 +228,13 @@ function updateList(diffResult) {
 
   // Display deleted files
   if (deletedFiles.length > 0) {
-    const deletedFilesHeader = document.createElement('h4');
+    const deletedFilesHeader = document.createElement('h3');
     deletedFilesHeader.textContent = 'Deleted Files:';
     changesList.appendChild(deletedFilesHeader);
 
     const deletedFilesList = document.createElement('ul');
-    for (const filePath of deletedFiles) {
-      const listItem = createListItem(`${filePath}`);
+    for (const file of deletedFiles) {
+      const listItem = createListItem(`Deleted File: ${file}`);
       deletedFilesList.appendChild(listItem);
     }
     changesList.appendChild(deletedFilesList);

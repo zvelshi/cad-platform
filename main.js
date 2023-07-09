@@ -598,12 +598,8 @@ async function checkLocalDirectory(activeRepo){
   
     await compareHierarchies(localHierarchy, cloudHierarchy, activeRepo.uniqueName, diffResult);
     ipcMain.emit('update-list', diffResult);
-  
-    console.log('New Files:', diffResult.newFiles);
-    console.log('Modified Files:', diffResult.modifiedFiles);
-    console.log('Deleted Files:', diffResult.deletedFiles);
     
-    return diffResult;
+  return diffResult;
 }
 
 //-------------------end of helper functions-------------------
