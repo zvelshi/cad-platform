@@ -2,11 +2,12 @@
 * File Name: renderer.js
 * Author: Zac Velshi
 * Date Created: 2023-06-08
-* Last Modified: 2023-07-08
+* Last Modified: 2023-07-11
 * Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
 */
 
 const { ipcRenderer } = require('electron');
+const chokidar = require('chokidar');
 
 document.addEventListener('DOMContentLoaded', () => {
   const organization = document.getElementById('organization');
@@ -51,9 +52,32 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   ipcRenderer.invoke('get-active-repo-local').then((activeRepo) => {
+    const watcher = chokidar.watch(activeRepo.folderPath, {
+      ignored: /^\./, // ignore dot files
+      persistent: true,
+    });
+
     if (activeRepo){
       ipcRenderer.invoke('check-local-directory', activeRepo).then((diffResult) => {
         updateList(diffResult);
+      
+        watcher
+        .on('add', (filePath) => {
+          diffResult.newFiles.push(filePath);
+          updateList(diffResult);
+        })
+        .on('change', (filePath) => {
+          if (!diffResult.newFiles.includes(filePath) && !diffResult.modifiedFiles.includes(filePath)) {
+            diffResult.modifiedFiles.push(filePath);
+            updateList(diffResult);
+          }
+        })
+        .on('unlink', (filePath) => {
+          if (!diffResult.newFiles.includes(filePath) && !diffResult.modifiedFiles.includes(filePath)) {
+            diffResult.deletedFiles.push(filePath);
+            updateList(diffResult);
+          }
+        });
       });
     }
 
@@ -62,10 +86,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Push button click event handler
+  pushBtn.addEventListener('click', () => {
+    const checkboxes = document.querySelectorAll('#changes-list input[type="checkbox"]');
+    const selectedFiles = [];
+  
+    checkboxes.forEach((checkbox) => {
+      if (checkbox.checked) {
+        const fileName = checkbox.nextElementSibling.textContent;
+        selectedFiles.push(fileName);
+      }
+    });
+  
+    console.log(selectedFiles);
+
+    ipcRenderer.invoke('get-active-repo-local').then((activeRepoObject) => {
+      ipcRenderer.invoke('check-local-directory', activeRepoObject).then((diffResult) => {
+        updateList(diffResult);
+      });
+    });
+  });
+  
   changeRepoSelect.addEventListener('input', () => {
     const activeRepo = changeRepoSelect.options[changeRepoSelect.selectedIndex].value;
     ipcRenderer.invoke('set-active-repo', activeRepo);
-    document.getElementById('active-repo').innerText = changeRepoSelect.options[changeRepoSelect.selectedIndex].innerText;;
+    document.getElementById('active-repo').innerText = changeRepoSelect.options[changeRepoSelect.selectedIndex].innerText;
+    ipcRenderer.invoke('get-active-repo-local').then((activeRepoObject) => {
+      ipcRenderer.invoke('check-local-directory', activeRepoObject).then((diffResult) => {
+        updateList(diffResult);
+      });
+    });
   });
 
   selectDirBtn.addEventListener('click', () => {
@@ -194,19 +244,29 @@ function updateList(diffResult) {
   // Helper function to create a list item element with the specified text
   function createListItem(text) {
     const li = document.createElement('li');
-    li.textContent = text;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = text;
+    checkbox.checked = true;
+    li.appendChild(checkbox);
+  
+    const fileName = document.createElement('span');
+    fileName.textContent = text;
+    li.appendChild(fileName);
+  
     return li;
   }
 
   // Display new files
   if (newFiles.length > 0) {
     const newFilesHeader = document.createElement('h3');
-    newFilesHeader.textContent = 'New Files:';
+    newFilesHeader.textContent = 'New Files';
     changesList.appendChild(newFilesHeader);
 
     const newFilesList = document.createElement('ul');
     for (const file of newFiles) {
-      const listItem = createListItem(`New File: ${file}`);
+      const listItem = document.createElement('li');
+      listItem.appendChild(createListItem(file));
       newFilesList.appendChild(listItem);
     }
     changesList.appendChild(newFilesList);
@@ -215,12 +275,13 @@ function updateList(diffResult) {
   // Display modified files
   if (modifiedFiles.length > 0) {
     const modifiedFilesHeader = document.createElement('h3');
-    modifiedFilesHeader.textContent = 'Modified Files:';
+    modifiedFilesHeader.textContent = 'Modified Files';
     changesList.appendChild(modifiedFilesHeader);
 
     const modifiedFilesList = document.createElement('ul');
     for (const file of modifiedFiles) {
-      const listItem = createListItem(`Modified File: ${file}`);
+      const listItem = document.createElement('li');
+      listItem.appendChild(createListItem(file));
       modifiedFilesList.appendChild(listItem);
     }
     changesList.appendChild(modifiedFilesList);
@@ -229,14 +290,16 @@ function updateList(diffResult) {
   // Display deleted files
   if (deletedFiles.length > 0) {
     const deletedFilesHeader = document.createElement('h3');
-    deletedFilesHeader.textContent = 'Deleted Files:';
+    deletedFilesHeader.textContent = 'Deleted Files';
     changesList.appendChild(deletedFilesHeader);
 
     const deletedFilesList = document.createElement('ul');
     for (const file of deletedFiles) {
-      const listItem = createListItem(`Deleted File: ${file}`);
+      const listItem = document.createElement('li');
+      listItem.appendChild(createListItem(file));
       deletedFilesList.appendChild(listItem);
     }
     changesList.appendChild(deletedFilesList);
   }
 }
+
