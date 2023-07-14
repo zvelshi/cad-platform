@@ -1,6 +1,5 @@
 /*
 * File Name: renderer.js
-* Author: Zac Velshi
 * Date Created: 2023-06-08
 * Last Modified: 2023-07-11
 * Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
@@ -89,18 +88,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Push button click event handler
   pushBtn.addEventListener('click', () => {
     const checkboxes = document.querySelectorAll('#changes-list input[type="checkbox"]');
-    const selectedFiles = [];
+    const selectedFiles = {};
   
     checkboxes.forEach((checkbox) => {
       if (checkbox.checked) {
+        const fileSection = checkbox.closest('ul').previousElementSibling.textContent;
         const fileName = checkbox.nextElementSibling.textContent;
-        selectedFiles.push(fileName);
+        selectedFiles[fileSection] = selectedFiles[fileSection] || []; // Initialize property as an empty array if it doesn't exist
+        selectedFiles[fileSection].push(fileName);
       }
     });
-  
+
     console.log(selectedFiles);
 
-    ipcRenderer.invoke('get-active-repo-local').then((activeRepoObject) => {
+    ipcRenderer.invoke('push-changes', selectedFiles).then((activeRepoObject) => {
       ipcRenderer.invoke('check-local-directory', activeRepoObject).then((diffResult) => {
         updateList(diffResult);
       });
@@ -260,7 +261,7 @@ function updateList(diffResult) {
   // Display new files
   if (newFiles.length > 0) {
     const newFilesHeader = document.createElement('h3');
-    newFilesHeader.textContent = 'New Files';
+    newFilesHeader.textContent = 'New';
     changesList.appendChild(newFilesHeader);
 
     const newFilesList = document.createElement('ul');
@@ -275,7 +276,7 @@ function updateList(diffResult) {
   // Display modified files
   if (modifiedFiles.length > 0) {
     const modifiedFilesHeader = document.createElement('h3');
-    modifiedFilesHeader.textContent = 'Modified Files';
+    modifiedFilesHeader.textContent = 'Modified';
     changesList.appendChild(modifiedFilesHeader);
 
     const modifiedFilesList = document.createElement('ul');
@@ -290,7 +291,7 @@ function updateList(diffResult) {
   // Display deleted files
   if (deletedFiles.length > 0) {
     const deletedFilesHeader = document.createElement('h3');
-    deletedFilesHeader.textContent = 'Deleted Files';
+    deletedFilesHeader.textContent = 'Deleted';
     changesList.appendChild(deletedFilesHeader);
 
     const deletedFilesList = document.createElement('ul');
@@ -302,4 +303,3 @@ function updateList(diffResult) {
     changesList.appendChild(deletedFilesList);
   }
 }
-

@@ -1,6 +1,5 @@
 /*
 * File Name: main.js
-* Author: Zac Velshi
 * Date Created: 2023-06-08
 * Last Modified: 2023-07-11
 * Purpose: This file interacts with remote databases and AWS file storage solutions to carry out the logic commands to sync and interface a local directory with a remote directory
@@ -27,6 +26,7 @@ const {
   GetObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
+  DeleteObjectCommand,
 } = require('@aws-sdk/client-s3');
 
 // dynamodb client api commands
@@ -224,6 +224,50 @@ const createWindow = () => {
   ipcMain.handle('check-local-directory', async (event, activeRepo) => {
     return await checkLocalDirectory(activeRepo);
   });
+
+  ipcMain.handle('push-changes', async (event, selectedFiles) => {
+    const activeRepo = await getActiveRepoLocal();
+  
+    const diffResult = await checkLocalDirectory(activeRepo);
+  
+    const addedFiles = diffResult.newFiles;
+    const modifiedFiles = diffResult.modifiedFiles;
+    const deletedFiles = diffResult.deletedFiles;
+
+    try {
+      for (const filePath of addedFiles) {
+        if (selectedFiles.New.includes(filePath)) {
+          const fileName = filePath.slice(filePath.lastIndexOf('\\') + 1);
+          console.log(filePath, ":", fileName, ":", activeRepo.uniqueName)
+          await uploadFileToS3(filePath, fileName, activeRepo.uniqueName);
+        }
+      }
+    } catch (err) { console.log(err); }
+
+    try {       
+      for (const filePath of modifiedFiles) {
+        if (selectedFiles.Modified.includes(filePath)) {
+          const fileName = filePath.slice(filePath.lastIndexOf('\\') + 1);
+          await modifyFileS3(filePath, fileName, activeRepo.uniqueName);
+        }
+      }
+    } catch (err) { console.log(err); }
+    
+    try { 
+      for (const filePath of deletedFiles) {
+        if (selectedFiles.Deleted.includes(filePath)) {
+          console.log(filePath, activeRepo.uniqueName)
+          await deleteFileS3(filePath, activeRepo.uniqueName);
+        }
+      }
+     } catch (err) { console.log(err); }
+    
+    // Refresh the diff result after the push
+    const updatedDiffResult = await checkLocalDirectory(activeRepo);
+    mainWindow.webContents.send('update-list', updatedDiffResult);
+
+    return activeRepo;
+  });
 };
 
 app.whenReady().then(() => {
@@ -240,6 +284,100 @@ app.on('window-all-closed', () => {
 //-------------------end of mainWindow code----------------------
 
 //-------------------start of helper functions-------------------
+
+async function findFileDirectoryInBucket(bucketHierarchy, fileName) {
+  let fileKey = '';
+  if (bucketHierarchy.type == 'folder') {
+    try {
+      for (const child of bucketHierarchy.children) {
+        fileKey = await findFileDirectoryInBucket(child, fileName);
+        if (fileKey != '') {
+          break;
+        }
+      }
+    } catch (err) { 
+      console.log(err); 
+    }
+  } else if (bucketHierarchy.type == 'file' && bucketHierarchy.name == fileName) {
+    fileKey = bucketHierarchy.path;
+  }
+  return fileKey;
+}
+
+async function uploadFileToS3(filePath, fileName, bucketName) {
+  const fileContentStream = fs.createReadStream(filePath);
+  const repoFriendlyName = (await getActiveRepoLocal()).friendlyName;
+  
+  let fileKey = filePath.slice(filePath.indexOf(repoFriendlyName) + repoFriendlyName.length + 1);
+  fileKey = fileKey.replace(/\\/g, '/');
+
+  const s3Params = {
+    Bucket: bucketName,
+    Key: fileKey,
+    Body: fileContentStream
+  };
+
+  try {
+    await s3.send(new PutObjectCommand(s3Params));
+    console.log('File:', fileName, 'uploaded to S3 bucket,', bucketName, '.');
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+async function modifyFileS3(filePath, fileName, bucketName) {
+  const fileContentStream = fs.createReadStream(filePath);  
+  const bucketHierarchy = await getBucketHierarchy(bucketName);
+  
+  let fileKey = '';
+  if (bucketHierarchy.type == 'folder') {
+    fileKey = await findFileDirectoryInBucket(bucketHierarchy, fileName);
+  } else if (bucketHierarchy.type == 'file' && bucketHierarchy.name == fileName) {
+    if (bucketHierarchy.path == '') {
+      fileKey = fileName;
+    } else {
+      fileKey = bucketHierarchy.path;
+    }
+  }
+
+  console.log(fileKey);
+
+  const s3Params = {
+    Bucket: bucketName,
+    Key: fileKey,
+    Body: fileContentStream
+  };
+
+  try {
+    await s3.send(new PutObjectCommand(s3Params));
+    console.log('File:', fileName, 'modified on S3 bucket,', bucketName, '.');
+  } catch (err) {
+    console.log("Error uploading file", fileName, "to bucket, error:", err);
+  }
+}
+
+async function deleteFileS3(fileName, bucketName) {
+  const bucketHierarchy = await getBucketHierarchy(bucketName);
+  
+  let fileKey = '';
+  if (bucketHierarchy.type == 'folder') {
+    fileKey = await findFileDirectoryInBucket(bucketHierarchy, fileName);
+  } else if (bucketHierarchy.name == fileName) {
+    fileKey = bucketHierarchy.path;
+  }
+  
+  const s3Params = {
+    Bucket: bucketName,
+    Key: fileName
+  };
+
+  try {
+    await s3.send(new DeleteObjectCommand(s3Params));
+    console.log('File: ', fileName, ' deleted from S3 bucket, ', bucketName, '.');
+  } catch (err) {
+    console.log("Error deleting file", fileName, " from bucket, error: ", err);
+  }
+}
 
 async function cloneLocalRepo(uniqueName, folderPath) {
 
