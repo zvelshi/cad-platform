@@ -1,6 +1,5 @@
 /*
 * File Name: db_client.js
-* Author: Zac Velshi
 * Date Created: 2023-06-20
 * Last Modified: 2023-06-20
 * Purpose: This file contains the code to interface with the AWS DynamoDB API.
