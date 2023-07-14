@@ -1,7 +1,7 @@
 /*
 * File Name: main.js
 * Date Created: 2023-06-08
-* Last Modified: 2023-07-11
+* Last Modified: 2023-07-12
 * Purpose: This file interacts with remote databases and AWS file storage solutions to carry out the logic commands to sync and interface a local directory with a remote directory
 */
 

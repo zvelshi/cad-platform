@@ -1,7 +1,7 @@
 /*
 * File Name: renderer.js
 * Date Created: 2023-06-08
-* Last Modified: 2023-07-11
+* Last Modified: 2023-07-13
 * Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
 */
 
@@ -85,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Push button click event handler
   pushBtn.addEventListener('click', () => {
     const checkboxes = document.querySelectorAll('#changes-list input[type="checkbox"]');
     const selectedFiles = {};
@@ -190,7 +189,12 @@ document.addEventListener('DOMContentLoaded', () => {
           const option = document.createElement('option');
           option.value = repo.id;
           option.innerText = repo.friendlyName + ' - ' + repo.organization;
+          ipcRenderer.invoke('get-local-repos').then((localRepos) => {
+          if (localRepos.some((localRepo) => localRepo.uniqueName === repo.id)) {
+            option.setAttribute('disabled', 'disabled');
+          }
           cloneRepoCloudSelect.appendChild(option);
+          });
         });
       });
 
