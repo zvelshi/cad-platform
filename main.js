@@ -1,7 +1,7 @@
 /*
 * File Name: main.js
 * Date Created: 2023-06-08
-* Last Modified: 2023-07-12
+* Last Modified: 2023-07-16
 * Purpose: This file interacts with remote databases and AWS file storage solutions to carry out the logic commands to sync and interface a local directory with a remote directory
 */
 
@@ -168,11 +168,8 @@ const createWindow = () => {
   });
 
   ipcMain.handle('pull-repo', async (event) => {
-
     const activeRepo = await getActiveRepoLocal();
-
     const hierarchy = await getBucketHierarchy(activeRepo.uniqueName);
-
     const folderPath = activeRepo.folderPath.slice(0, activeRepo.folderPath.lastIndexOf('\\'));
 
     await pullCloudRepo(hierarchy, folderPath, activeRepo.uniqueName);
@@ -380,15 +377,12 @@ async function deleteFileS3(fileName, bucketName) {
 }
 
 async function cloneLocalRepo(uniqueName, folderPath) {
-
   const files = await fs.promises.readdir(folderPath, { withFileTypes: true });
 
   for (const file of files) {
-
     const filePath = path.join(folderPath, file.name);
 
     if (file.isDirectory()) {
-
       const folderKey = file.name + '/';
       await s3.send(new PutObjectCommand({
         Bucket: uniqueName,
@@ -396,9 +390,7 @@ async function cloneLocalRepo(uniqueName, folderPath) {
       }));
 
       await cloneLocalRepo(uniqueName, filePath);
-
     } else {
-
       const fileContentStream = fs.createReadStream(filePath);
       await s3.send(new PutObjectCommand({
         Bucket: uniqueName,
@@ -407,37 +399,92 @@ async function cloneLocalRepo(uniqueName, folderPath) {
       }));
     }
   }
+  // Check for empty directories and create them in the cloud
+  const emptyDirs = await findEmptyDirectories(folderPath);
+  for (const dirPath of emptyDirs) {
+    const folderKey = dirPath.slice(folderPath.length + 1) + '/';
+    await s3.send(new PutObjectCommand({
+      Bucket: uniqueName,
+      Key: folderKey,
+    }));
+  }
+}
+
+async function findEmptyDirectories(folderPath) {
+  const dirents = await fs.promises.readdir(folderPath, { withFileTypes: true });
+  const emptyDirs = [];
+
+  for (const dirent of dirents) {
+    if (dirent.isDirectory()) {
+      const dirPath = path.join(folderPath, dirent.name).replace(/\\/g, '/');      
+      const subDirs = await findEmptyDirectories(dirPath);
+      if (subDirs.length === 0) {
+        emptyDirs.push(dirPath);
+      } else {
+        emptyDirs.push(...subDirs);
+      }
+    }
+  }
+
+  return emptyDirs;
 }
 
 async function pullCloudRepo(hierarchy, folderPath, bucketName) {
-
   const destinationPath = path.join(folderPath, hierarchy.name);
 
-  if (hierarchy.type === 'file') {
-    const localFilePath = destinationPath;
+  console.log('Pulling:', destinationPath);
 
-    const isModified = await isFileModified(bucketName, hierarchy.path, localFilePath);
-
-    if (isModified) {
+  try {
+    if (hierarchy.type === 'file') {
+      const localFilePath = destinationPath;
       const parentDir = path.dirname(localFilePath);
-      await fs.promises.mkdir(parentDir, { recursive: true });
-      await getFileContentFromS3(hierarchy.path, localFilePath, bucketName);
-    }
 
-  } else if (hierarchy.type === 'folder') {
-    if (!fs.existsSync(destinationPath)) {
+      console.log('Creating parent directory:', parentDir);
 
-      await fs.promises.mkdir(destinationPath, { recursive: true });
-    }
+      try {
+        if (!fs.existsSync(parentDir)) {
+          await fs.promises.mkdir(parentDir, { recursive: true });
+          console.log('Parent directory created:', parentDir);
+        } else {
+          console.log('Parent directory already exists:', parentDir);
+        }
+      } catch (parentDirErr) {
+        console.error('Error creating parent directory:', parentDirErr);
+        throw parentDirErr;
+      }
 
-    for (const child of hierarchy.children) {
-      await pullCloudRepo(child, destinationPath, bucketName);
+      if (!fs.existsSync(localFilePath)) {
+        console.log('File does not exist locally, fetching from S3:', hierarchy.path);
+        await getFileContentFromS3(hierarchy.path, localFilePath, bucketName);
+        console.log('File content fetched and written:', localFilePath);
+      } else {
+        console.log('File already exists locally, skipping fetch:', localFilePath);
+      }
+    } else if (hierarchy.type === 'folder') {
+      if (!fs.existsSync(destinationPath)) {
+        console.log('Creating folder:', destinationPath);
+        try {
+          await fs.promises.mkdir(destinationPath, { recursive: true });
+          console.log('Folder created:', destinationPath);
+        } catch (folderErr) {
+          console.error('Error creating folder:', folderErr);
+          throw folderErr;
+        }
+      } else {
+        console.log('Folder already exists:', destinationPath);
+      }
+
+      for (const child of hierarchy.children) {
+        await pullCloudRepo(child, destinationPath, bucketName);
+      }
     }
+  } catch (err) {
+    console.error('Error occurred during pullCloudRepo:', err);
+    throw err;
   }
 }
 
 async function isFileModified(bucketName, filePath, localFilePath) {
-
   if (!fs.existsSync(localFilePath)) {
     return true;
   }
@@ -520,6 +567,7 @@ async function getFileContentFromS3(filePath, localFilePath, bucketName) {
 
     await new Promise((resolve, reject) => {
       const fileStream = fs.createWriteStream(localFilePath);
+
       stream.pipe(fileStream);
 
       stream.on('end', resolve);
@@ -534,7 +582,6 @@ async function getFileContentFromS3(filePath, localFilePath, bucketName) {
 }
 
 async function getBucketHierarchy(bucketName) {
-
   const res = await s3.send(new ListObjectsV2Command ({ 
     Bucket: bucketName 
   }));
