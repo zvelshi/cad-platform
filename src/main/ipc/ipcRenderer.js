@@ -1,8 +1,10 @@
 /*
-* File Name: renderer.js
-* Date Created: 2023-06-08
+* File Name: 
+* Date Created: 2023-07-13
 * Last Modified: 2023-07-13
-* Purpose: This file interfaces the HTML file inputs with the Javascript DOM commmands.
+* Purpose:
+* Inputs:
+* Outputs:
 */
 
 const { ipcRenderer } = require('electron');
